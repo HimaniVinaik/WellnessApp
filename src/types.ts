@@ -69,7 +69,7 @@ export interface VocabWord {
   learned: boolean
 }
 
-export type GameKind = 'nback' | 'memory' | 'math' | 'splitfocus' | 'vocab'
+export type GameKind = 'nback' | 'memory' | 'math' | 'splitfocus' | 'vocab' | 'chess'
 
 export interface GameScore {
   id: string

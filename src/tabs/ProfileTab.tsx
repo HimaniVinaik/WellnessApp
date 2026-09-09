@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
 import { useToast } from '../context/ToastContext'
 import { verifyAccess } from '../lib/github'
-import { loadRememberedPassphrase, rememberPassphrase, forgetPassphrase } from '../lib/storage'
+import { defaultSyncPath, deleteProfile } from '../lib/profiles'
 import { LevelDef, POINTS_PER_LEVEL } from '../types'
 import Icon from '../components/Icon'
 import { ThemeMode, useTheme } from '../context/ThemeContext'
@@ -81,34 +81,73 @@ function LevelEditor() {
   )
 }
 
+function AccountCard() {
+  const { profile, signOut } = useAppData()
+  const { showToast } = useToast()
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  function handleDelete() {
+    deleteProfile(profile.id)
+    showToast('Profile deleted from this device.')
+    signOut()
+  }
+
+  return (
+    <div className="card">
+      <div className="row-between" style={{ marginBottom: 12 }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>{profile.name}</div>
+          <div className="hint" style={{ margin: 0 }}>
+            Signed in since {new Date(profile.createdAt).toLocaleDateString()}
+          </div>
+        </div>
+      </div>
+      <button className="btn btn-secondary btn-block" onClick={signOut}>
+        Switch profile
+      </button>
+      {!confirmDelete ? (
+        <button className="btn btn-ghost btn-block" style={{ color: 'var(--danger)' }} onClick={() => setConfirmDelete(true)}>
+          Delete this profile
+        </button>
+      ) : (
+        <>
+          <p className="hint" style={{ marginTop: 10 }}>
+            This permanently deletes {profile.name}'s data and passphrase from this device. Any GitHub backup is not
+            touched.
+          </p>
+          <div className="row">
+            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmDelete(false)}>
+              Cancel
+            </button>
+            <button className="btn btn-danger" style={{ flex: 1 }} onClick={handleDelete}>
+              Delete profile
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function GithubSyncCard() {
-  const { syncConfig, setSyncConfig, pushToGithub, pullFromGithub } = useAppData()
+  const { profile, syncConfig, setSyncConfig, pushToGithub, pullFromGithub } = useAppData()
   const { showToast } = useToast()
   const [owner, setOwner] = useState(syncConfig?.owner ?? '')
   const [repo, setRepo] = useState(syncConfig?.repo ?? '')
   const [branch, setBranch] = useState(syncConfig?.branch ?? 'main')
-  const [path, setPath] = useState(syncConfig?.path ?? 'data/wellness-data.csv')
+  const [path, setPath] = useState(syncConfig?.path ?? defaultSyncPath(profile.name, profile.id))
   const [token, setToken] = useState(syncConfig?.token ?? '')
-  const [passphrase, setPassphrase] = useState(loadRememberedPassphrase() ?? '')
-  const [remember, setRemember] = useState(!!loadRememberedPassphrase())
   const [busy, setBusy] = useState(false)
 
   function currentConfig() {
     return { owner: owner.trim(), repo: repo.trim(), branch: branch.trim() || 'main', path: path.trim(), token: token.trim() }
   }
 
-  function persistConfig() {
-    const cfg = currentConfig()
-    setSyncConfig(cfg)
-    if (remember) rememberPassphrase(passphrase)
-    else forgetPassphrase()
-    return cfg
-  }
-
   async function handleTest() {
     setBusy(true)
     try {
-      const cfg = persistConfig()
+      const cfg = currentConfig()
+      setSyncConfig(cfg)
       const result = await verifyAccess(cfg)
       showToast(result.message)
     } catch (e) {
@@ -119,14 +158,10 @@ function GithubSyncCard() {
   }
 
   async function handlePush() {
-    if (!passphrase) {
-      showToast('Enter an encryption passphrase first.')
-      return
-    }
     setBusy(true)
     try {
-      persistConfig()
-      const msg = await pushToGithub(passphrase)
+      setSyncConfig(currentConfig())
+      const msg = await pushToGithub()
       showToast(msg)
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Save failed.')
@@ -136,14 +171,10 @@ function GithubSyncCard() {
   }
 
   async function handlePull() {
-    if (!passphrase) {
-      showToast('Enter your encryption passphrase first.')
-      return
-    }
     setBusy(true)
     try {
-      persistConfig()
-      const msg = await pullFromGithub(passphrase)
+      setSyncConfig(currentConfig())
+      const msg = await pullFromGithub()
       showToast(msg)
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Load failed.')
@@ -155,9 +186,9 @@ function GithubSyncCard() {
   return (
     <div className="card">
       <p className="hint" style={{ marginTop: 0 }}>
-        Your data is encrypted (AES-256) with a passphrase only you know, then committed as a CSV file to a GitHub
-        repository you control. Your token and passphrase are stored only on this device and sent only to GitHub's
-        API.
+        Your data is encrypted (AES-256) with the passphrase for <b>{profile.name}</b> — the same one you unlock with
+        — then committed as its own CSV file to a GitHub repository you control. Your token is stored only on this
+        device and sent only to GitHub's API.
       </p>
       <div className="field">
         <label className="field-label">Repository owner</label>
@@ -180,20 +211,6 @@ function GithubSyncCard() {
       <div className="field">
         <label className="field-label">Personal access token (repo scope)</label>
         <input className="input" type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="ghp_…" />
-      </div>
-      <div className="field">
-        <label className="field-label">Encryption passphrase</label>
-        <input
-          className="input"
-          type="password"
-          value={passphrase}
-          onChange={(e) => setPassphrase(e.target.value)}
-          placeholder="Only you know this"
-        />
-        <label className="hint" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-          Remember passphrase on this device
-        </label>
       </div>
       <div className="row" style={{ marginBottom: 10 }}>
         <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handleTest} disabled={busy || !owner || !repo || !token}>
@@ -249,6 +266,9 @@ export default function ProfileTab() {
         </div>
       </div>
 
+      <div className="section-title">Account</div>
+      <AccountCard />
+
       <div className="section-title">Appearance</div>
       <AppearanceCard />
 
@@ -267,8 +287,8 @@ export default function ProfileTab() {
         ) : (
           <>
             <p className="hint" style={{ marginTop: 0 }}>
-              This permanently deletes everything stored on this device. If you've saved to GitHub, you can load it
-              back afterward.
+              This permanently deletes everything in this profile. If you've saved to GitHub, you can load it back
+              afterward.
             </p>
             <div className="row">
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmReset(false)}>

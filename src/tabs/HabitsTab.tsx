@@ -17,6 +17,18 @@ const ICONS: IconName[] = [
   'target',
   'musicNote',
   'leaf',
+  'heart',
+  'dumbbell',
+  'coffee',
+  'clock',
+  'flag',
+  'shield',
+  'waves',
+  'wind',
+  'mountain',
+  'star',
+  'camera',
+  'sprout',
 ]
 
 function AddHabitSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: string, icon: string, pts: number) => void }) {

@@ -5,6 +5,7 @@ import MemoryMatchGame from '../games/MemoryMatchGame'
 import MentalMathGame from '../games/MentalMathGame'
 import SplitFocusGame from '../games/SplitFocusGame'
 import VocabGame from '../games/VocabGame'
+import ChessGame from '../games/ChessGame'
 import { GameKind } from '../types'
 import Icon, { IconName } from '../components/Icon'
 
@@ -14,6 +15,7 @@ const GAME_META: Record<GameKind, { title: string; desc: string; glyph: IconName
   math: { title: 'Mental Math', desc: 'Fast arithmetic under a clock', glyph: 'divide' },
   splitfocus: { title: 'Split Focus', desc: 'Switch fast between number and letter rules', glyph: 'splitSquare' },
   vocab: { title: 'Word of the Day', desc: 'Learn new words with definitions & audio', glyph: 'letters' },
+  chess: { title: 'Chess', desc: 'Play the computer — easy to hard, with hints', glyph: 'chess' },
 }
 
 function bestScore(scores: { game: GameKind; score: number }[], game: GameKind) {
@@ -31,6 +33,7 @@ export default function GamesTab() {
   if (active === 'math') return <MentalMathGame onExit={() => setActive(null)} />
   if (active === 'splitfocus') return <SplitFocusGame onExit={() => setActive(null)} />
   if (active === 'vocab') return <VocabGame onExit={() => setActive(null)} />
+  if (active === 'chess') return <ChessGame onExit={() => setActive(null)} />
 
   return (
     <div>

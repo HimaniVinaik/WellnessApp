@@ -17,6 +17,18 @@ const ICONS: IconName[] = [
   'camera',
   'sprout',
   'mountain',
+  'globe',
+  'target',
+  'anchor',
+  'flag',
+  'shield',
+  'network',
+  'layoutGrid',
+  'cards',
+  'bookOpen',
+  'star',
+  'letters',
+  'compass',
 ]
 
 function AddSkillSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: string, icon: string, pts: number) => void }) {

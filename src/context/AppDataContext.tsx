@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AppState,
   GameKind,
@@ -10,10 +10,11 @@ import {
   Skill,
   Todo,
   VocabWord,
+  emptyState,
 } from '../types'
 import { makeId } from '../lib/id'
 import { hasCheckedInToday, todayKey, totalPoints, levelInfo } from '../lib/points'
-import { loadState, saveState, loadSyncConfig, saveSyncConfig, clearSyncConfig } from '../lib/storage'
+import { Profile, loadProfileSyncConfig, saveEncryptedBlob, saveProfileSyncConfig } from '../lib/profiles'
 import { csvToState, stateToCsv } from '../lib/csv'
 import { decryptText, encryptText } from '../lib/crypto'
 import { fetchFile, putFile } from '../lib/github'
@@ -22,6 +23,9 @@ interface Ctx {
   state: AppState
   points: number
   level: ReturnType<typeof levelInfo>
+  profile: Profile
+  signOut: () => void
+
   addHabit: (name: string, icon: string, pointsPerCheckIn: number) => void
   checkInHabit: (id: string) => void
   archiveHabit: (id: string) => void
@@ -52,27 +56,52 @@ interface Ctx {
 
   syncConfig: GithubSyncConfig | null
   setSyncConfig: (cfg: GithubSyncConfig | null) => void
-  pushToGithub: (passphrase: string) => Promise<string>
-  pullFromGithub: (passphrase: string) => Promise<string>
+  pushToGithub: () => Promise<string>
+  pullFromGithub: () => Promise<string>
 
   resetAllData: () => void
 }
 
 const AppDataContext = createContext<Ctx | null>(null)
 
-export function AppDataProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AppState>(() => loadState())
-  const [syncConfig, setSyncConfigState] = useState<GithubSyncConfig | null>(() => loadSyncConfig())
+export function AppDataProvider({
+  profile,
+  passphrase,
+  initialState,
+  onSignOut,
+  children,
+}: {
+  profile: Profile
+  passphrase: string
+  initialState: AppState
+  onSignOut: () => void
+  children: React.ReactNode
+}) {
+  const [state, setState] = useState<AppState>(initialState)
+  const [syncConfig, setSyncConfigState] = useState<GithubSyncConfig | null>(() => loadProfileSyncConfig(profile.id))
+  const passphraseRef = useRef(passphrase)
+  passphraseRef.current = passphrase
+  const isFirstSave = useRef(true)
 
   useEffect(() => {
-    saveState(state)
-  }, [state])
+    // Skip the redundant re-encrypt on mount — initialState was already
+    // decrypted from (or just written as) this exact blob by ProfileGate.
+    if (isFirstSave.current) {
+      isFirstSave.current = false
+      return
+    }
+    encryptText(JSON.stringify(state), passphraseRef.current).then((ciphertext) => {
+      saveEncryptedBlob(profile.id, ciphertext)
+    })
+  }, [state, profile.id])
 
-  const setSyncConfig = useCallback((cfg: GithubSyncConfig | null) => {
-    setSyncConfigState(cfg)
-    if (cfg) saveSyncConfig(cfg)
-    else clearSyncConfig()
-  }, [])
+  const setSyncConfig = useCallback(
+    (cfg: GithubSyncConfig | null) => {
+      setSyncConfigState(cfg)
+      if (cfg) saveProfileSyncConfig(profile.id, cfg)
+    },
+    [profile.id]
+  )
 
   const addHabit = useCallback((name: string, icon: string, pointsPerCheckIn: number) => {
     const habit: Habit = {
@@ -211,35 +240,27 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, vocabWords: s.vocabWords.filter((v) => v.id !== id) }))
   }, [])
 
-  const pushToGithub = useCallback(
-    async (passphrase: string) => {
-      if (!syncConfig) throw new Error('Connect a GitHub repository first.')
-      const csv = stateToCsv(state)
-      const encrypted = await encryptText(csv, passphrase)
-      const existing = await fetchFile(syncConfig).catch(() => null)
-      await putFile(syncConfig, encrypted, 'Update Mental Wellness data', existing?.sha)
-      return `Saved ${csv.split('\n').length} rows, encrypted, to ${syncConfig.owner}/${syncConfig.repo}.`
-    },
-    [state, syncConfig]
-  )
+  const pushToGithub = useCallback(async () => {
+    if (!syncConfig) throw new Error('Connect a GitHub repository first.')
+    const csv = stateToCsv(state)
+    const encrypted = await encryptText(csv, passphraseRef.current)
+    const existing = await fetchFile(syncConfig).catch(() => null)
+    await putFile(syncConfig, encrypted, `Update Mental Wellness data for ${profile.name}`, existing?.sha)
+    return `Saved ${csv.split('\n').length} rows, encrypted with your profile passphrase, to ${syncConfig.owner}/${syncConfig.repo}.`
+  }, [state, syncConfig, profile.name])
 
-  const pullFromGithub = useCallback(
-    async (passphrase: string) => {
-      if (!syncConfig) throw new Error('Connect a GitHub repository first.')
-      const file = await fetchFile(syncConfig)
-      if (!file) throw new Error('No data file found in that repository yet — try saving first.')
-      const csv = await decryptText(file.content, passphrase)
-      const restored = csvToState(csv)
-      setState(restored)
-      return 'Data restored from GitHub.'
-    },
-    [syncConfig]
-  )
+  const pullFromGithub = useCallback(async () => {
+    if (!syncConfig) throw new Error('Connect a GitHub repository first.')
+    const file = await fetchFile(syncConfig)
+    if (!file) throw new Error('No data file found in that repository yet — try saving first.')
+    const csv = await decryptText(file.content, passphraseRef.current)
+    const restored = csvToState(csv)
+    setState(restored)
+    return 'Data restored from GitHub.'
+  }, [syncConfig])
 
   const resetAllData = useCallback(() => {
-    setState(loadState())
-    localStorage.removeItem('mw.state.v1')
-    window.location.reload()
+    setState(emptyState())
   }, [])
 
   const points = useMemo(() => totalPoints(state.habits, state.skills), [state.habits, state.skills])
@@ -249,6 +270,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     state,
     points,
     level,
+    profile,
+    signOut: onSignOut,
     addHabit,
     checkInHabit,
     archiveHabit,

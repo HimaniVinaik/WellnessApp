@@ -45,6 +45,15 @@ export type IconName =
   | 'volume'
   | 'letters'
   | 'splitSquare'
+  | 'heart'
+  | 'dumbbell'
+  | 'coffee'
+  | 'globe'
+  | 'clock'
+  | 'shield'
+  | 'flag'
+  | 'anchor'
+  | 'chess'
 
 const paths: Record<IconName, ReactNode> = {
   checkSquare: (
@@ -309,6 +318,61 @@ const paths: Record<IconName, ReactNode> = {
       <line x1="3" y1="12" x2="21" y2="12" />
       <circle cx="8" cy="7.5" r="1" fill="currentColor" stroke="none" />
       <circle cx="16" cy="16.5" r="1" fill="currentColor" stroke="none" />
+    </>
+  ),
+  heart: <path d="M12 20.5c-4.5-3-9-6.7-9-11A5 5 0 0 1 12 6.5 5 5 0 0 1 21 9.5c0 4.3-4.5 8-9 11z" />,
+  dumbbell: (
+    <>
+      <rect x="1.5" y="9" width="3" height="6" rx="1" />
+      <rect x="19.5" y="9" width="3" height="6" rx="1" />
+      <rect x="4.5" y="7" width="2.2" height="10" rx="1" />
+      <rect x="17.3" y="7" width="2.2" height="10" rx="1" />
+      <line x1="6.7" y1="12" x2="17.3" y2="12" />
+    </>
+  ),
+  coffee: (
+    <>
+      <path d="M4 9h13v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V9z" />
+      <path d="M17 10.5h1.5a2.5 2.5 0 0 1 0 5H17" />
+      <path d="M8 4.5c0 1-1 1-1 2" />
+      <path d="M12 4.5c0 1-1 1-1 2" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <ellipse cx="12" cy="12" rx="4" ry="9" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15.5 14" />
+    </>
+  ),
+  shield: <path d="M12 3l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6z" />,
+  flag: (
+    <>
+      <line x1="5" y1="3" x2="5" y2="21" />
+      <path d="M5 4.5h13l-3 4 3 4H5z" />
+    </>
+  ),
+  anchor: (
+    <>
+      <circle cx="12" cy="5" r="2" />
+      <line x1="12" y1="7" x2="12" y2="19" />
+      <path d="M5 12a7 7 0 0 0 14 0" />
+      <line x1="8" y1="10" x2="16" y2="10" />
+    </>
+  ),
+  chess: (
+    <>
+      <path d="M9 21h6" />
+      <path d="M8 21l1-6h6l1 6" />
+      <path d="M7.5 15h9l-1-3h-7z" />
+      <path d="M8.5 12V7h7v5" />
+      <path d="M7.5 7h9M8.5 4.5h6M9.5 4.5V3M12 4.5V3M14.5 4.5V3" />
     </>
   ),
 }
