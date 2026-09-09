@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
+import Icon from '../components/Icon'
 
 const GRID = 9
 const INTERVAL = 1800
@@ -86,6 +87,8 @@ export default function NBackGame({ onExit }: { onExit: () => void }) {
   }
 
   function start() {
+    if (stimulusTimer.current) window.clearTimeout(stimulusTimer.current)
+    if (trialTimer.current) window.clearTimeout(trialTimer.current)
     const length = 20 + n * 4
     seqRef.current = buildSequence(n, length)
     idxRef.current = -1
@@ -99,6 +102,12 @@ export default function NBackGame({ onExit }: { onExit: () => void }) {
   function pressMatch() {
     respondedRef.current = true
     setJustPressed(true)
+  }
+
+  function exitGame() {
+    if (stimulusTimer.current) window.clearTimeout(stimulusTimer.current)
+    if (trialTimer.current) window.clearTimeout(trialTimer.current)
+    onExit()
   }
 
   if (phase === 'setup') {
@@ -135,6 +144,16 @@ export default function NBackGame({ onExit }: { onExit: () => void }) {
   if (phase === 'playing') {
     return (
       <div className="stage">
+        <div className="game-toolbar">
+          <button className="game-toolbar-btn" onClick={exitGame}>
+            <Icon name="arrowLeft" size={15} strokeWidth={2} />
+            Back
+          </button>
+          <button className="game-toolbar-btn" onClick={start}>
+            <Icon name="rotate" size={15} strokeWidth={2} />
+            Restart
+          </button>
+        </div>
         <div className="row-between" style={{ marginBottom: 10 }}>
           <span className="pill">{n}-back</span>
           <span className="hint" style={{ margin: 0 }}>

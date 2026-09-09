@@ -40,6 +40,8 @@ export type IconName =
   | 'check'
   | 'flame'
   | 'refresh'
+  | 'arrowLeft'
+  | 'rotate'
 
 const paths: Record<IconName, ReactNode> = {
   checkSquare: (
@@ -267,6 +269,20 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M3.5 12a8.5 8.5 0 0 1 14.6-5.9M20.5 12a8.5 8.5 0 0 1-14.6 5.9" />
       <polyline points="18.5 3.5 18.5 7.5 14.5 7.5" />
       <polyline points="5.5 20.5 5.5 16.5 9.5 16.5" />
+    </>
+  ),
+  arrowLeft: (
+    <>
+      <line x1="20" y1="12" x2="4" y2="12" />
+      <polyline points="10.5 5.5 4 12 10.5 18.5" />
+    </>
+  ),
+  rotate: (
+    <>
+      <path d="M4 12a8 8 0 0 1 13.7-5.7L20 8.5" />
+      <polyline points="20 3.5 20 8.5 15 8.5" />
+      <path d="M20 12a8 8 0 0 1-13.7 5.7L4 15.5" />
+      <polyline points="4 20.5 4 15.5 9 15.5" />
     </>
   ),
 }

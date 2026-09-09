@@ -38,22 +38,32 @@ export default function MemoryMatchGame({ onExit }: { onExit: () => void }) {
   const [seconds, setSeconds] = useState(0)
   const lockRef = useRef(false)
   const timerRef = useRef<number | null>(null)
+  const flipTimeoutRef = useRef<number | null>(null)
 
   useEffect(
     () => () => {
       if (timerRef.current) window.clearInterval(timerRef.current)
+      if (flipTimeoutRef.current) window.clearTimeout(flipTimeoutRef.current)
     },
     []
   )
 
   function start() {
+    if (timerRef.current) window.clearInterval(timerRef.current)
+    if (flipTimeoutRef.current) window.clearTimeout(flipTimeoutRef.current)
+    lockRef.current = false
     setCards(buildDeck(ICON_SETS[difficulty]))
     setSelected([])
     setMoves(0)
     setSeconds(0)
     setPhase('playing')
-    if (timerRef.current) window.clearInterval(timerRef.current)
     timerRef.current = window.setInterval(() => setSeconds((s) => s + 1), 1000)
+  }
+
+  function exitGame() {
+    if (timerRef.current) window.clearInterval(timerRef.current)
+    if (flipTimeoutRef.current) window.clearTimeout(flipTimeoutRef.current)
+    onExit()
   }
 
   function finish(finalMoves: number, finalSeconds: number, pairCount: number) {
@@ -82,7 +92,7 @@ export default function MemoryMatchGame({ onExit }: { onExit: () => void }) {
     setMoves((m) => m + 1)
     const [a, b] = nextSelected
 
-    window.setTimeout(() => {
+    flipTimeoutRef.current = window.setTimeout(() => {
       setCards((cs) => {
         const cardA = cs[a]
         const cardB = cs[b]
@@ -139,6 +149,16 @@ export default function MemoryMatchGame({ onExit }: { onExit: () => void }) {
     const cols = difficulty === 'Easy' ? 3 : 4
     return (
       <div className="stage">
+        <div className="game-toolbar">
+          <button className="game-toolbar-btn" onClick={exitGame}>
+            <Icon name="arrowLeft" size={15} strokeWidth={2} />
+            Back
+          </button>
+          <button className="game-toolbar-btn" onClick={start}>
+            <Icon name="rotate" size={15} strokeWidth={2} />
+            Restart
+          </button>
+        </div>
         <div className="stat-row" style={{ marginBottom: 14 }}>
           <div className="stat">
             <b>{moves}</b>

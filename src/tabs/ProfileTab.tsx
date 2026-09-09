@@ -5,6 +5,36 @@ import { verifyAccess } from '../lib/github'
 import { loadRememberedPassphrase, rememberPassphrase, forgetPassphrase } from '../lib/storage'
 import { LevelDef, POINTS_PER_LEVEL } from '../types'
 import Icon from '../components/Icon'
+import { ThemeMode, useTheme } from '../context/ThemeContext'
+
+const THEME_OPTIONS: { mode: ThemeMode; label: string }[] = [
+  { mode: 'system', label: 'System' },
+  { mode: 'light', label: 'Light' },
+  { mode: 'dark', label: 'Dark' },
+]
+
+function AppearanceCard() {
+  const { theme, setTheme } = useTheme()
+  return (
+    <div className="card">
+      <div className="row">
+        {THEME_OPTIONS.map((opt) => (
+          <button
+            key={opt.mode}
+            className={`duration-chip ${theme === opt.mode ? 'active' : ''}`}
+            style={{ flex: 1 }}
+            onClick={() => setTheme(opt.mode)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+      <div className="hint" style={{ marginTop: 10, marginBottom: 0 }}>
+        System follows your device's appearance setting.
+      </div>
+    </div>
+  )
+}
 
 function LevelEditor() {
   const { state, setLevels, level } = useAppData()
@@ -218,6 +248,9 @@ export default function ProfileTab() {
           <span>Check-ins</span>
         </div>
       </div>
+
+      <div className="section-title">Appearance</div>
+      <AppearanceCard />
 
       <div className="section-title">Levels</div>
       <LevelEditor />

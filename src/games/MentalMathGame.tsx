@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
+import Icon from '../components/Icon'
 
 interface Problem {
   question: string
@@ -76,22 +77,26 @@ export default function MentalMathGame({ onExit }: { onExit: () => void }) {
   const [feedback, setFeedback] = useState<{ idx: number; state: 'correct' | 'wrong' } | null>(null)
   const timerRef = useRef<number | null>(null)
   const lockRef = useRef(false)
+  const feedbackTimeoutRef = useRef<number | null>(null)
 
   useEffect(
     () => () => {
       if (timerRef.current) window.clearInterval(timerRef.current)
+      if (feedbackTimeoutRef.current) window.clearTimeout(feedbackTimeoutRef.current)
     },
     []
   )
 
   function start() {
+    if (timerRef.current) window.clearInterval(timerRef.current)
+    if (feedbackTimeoutRef.current) window.clearTimeout(feedbackTimeoutRef.current)
+    lockRef.current = false
     setCorrect(0)
     setWrong(0)
     setTimeLeft(DURATION)
     setProblem(generateProblem(difficulty))
     setFeedback(null)
     setPhase('playing')
-    if (timerRef.current) window.clearInterval(timerRef.current)
     timerRef.current = window.setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
@@ -124,11 +129,17 @@ export default function MentalMathGame({ onExit }: { onExit: () => void }) {
     if (isCorrect) setCorrect((c) => c + 1)
     else setWrong((w) => w + 1)
 
-    window.setTimeout(() => {
+    feedbackTimeoutRef.current = window.setTimeout(() => {
       setFeedback(null)
       setProblem(generateProblem(difficulty))
       lockRef.current = false
     }, 350)
+  }
+
+  function exitGame() {
+    if (timerRef.current) window.clearInterval(timerRef.current)
+    if (feedbackTimeoutRef.current) window.clearTimeout(feedbackTimeoutRef.current)
+    onExit()
   }
 
   if (phase === 'setup') {
@@ -162,6 +173,16 @@ export default function MentalMathGame({ onExit }: { onExit: () => void }) {
   if (phase === 'playing' && problem) {
     return (
       <div className="stage">
+        <div className="game-toolbar">
+          <button className="game-toolbar-btn" onClick={exitGame}>
+            <Icon name="arrowLeft" size={15} strokeWidth={2} />
+            Back
+          </button>
+          <button className="game-toolbar-btn" onClick={start}>
+            <Icon name="rotate" size={15} strokeWidth={2} />
+            Restart
+          </button>
+        </div>
         <div className="stat-row" style={{ marginBottom: 6 }}>
           <div className="stat">
             <b>{timeLeft}s</b>

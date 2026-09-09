@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AppDataProvider } from './context/AppDataContext'
 import { ToastProvider } from './context/ToastContext'
+import { ThemeProvider } from './context/ThemeContext'
 import TabBar, { TabKey } from './components/TabBar'
 import Header from './components/Header'
 import HabitsTab from './tabs/HabitsTab'
@@ -33,16 +34,18 @@ export default function App() {
   const [tab, setTab] = useState<TabKey>('habits')
 
   return (
-    <AppDataProvider>
-      <ToastProvider>
-        <div className="app-shell">
-          <Header tab={tab} />
-          <main className="main-content">
-            <TabContent tab={tab} />
-          </main>
-          <TabBar active={tab} onChange={setTab} />
-        </div>
-      </ToastProvider>
-    </AppDataProvider>
+    <ThemeProvider>
+      <AppDataProvider>
+        <ToastProvider>
+          <div className="app-shell">
+            <Header tab={tab} />
+            <main className="main-content">
+              <TabContent tab={tab} />
+            </main>
+            <TabBar active={tab} onChange={setTab} />
+          </div>
+        </ToastProvider>
+      </AppDataProvider>
+    </ThemeProvider>
   )
 }
