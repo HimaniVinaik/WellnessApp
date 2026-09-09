@@ -661,6 +661,69 @@ select {
   border-color: var(--danger);
 }
 
+.vocab-card {
+  text-align: center;
+  padding: 10px 4px 4px;
+}
+
+.vocab-word {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.vocab-phonetic {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.vocab-pos {
+  display: inline-block;
+  margin-top: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.vocab-definition {
+  margin-top: 12px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  text-align: left;
+}
+
+.vocab-example {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: left;
+}
+
+.split-stimulus {
+  text-align: center;
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 20px 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.split-cue {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+}
+
 .timer-ring-wrap {
   position: relative;
   width: 100%;

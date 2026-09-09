@@ -1,4 +1,4 @@
-import { AppState, CheckIn, GameScore, Habit, LevelDef, MeditationSession, ReadingItem, Skill, Todo, emptyState } from '../types'
+import { AppState, CheckIn, GameScore, Habit, LevelDef, MeditationSession, ReadingItem, Skill, Todo, VocabWord, emptyState } from '../types'
 
 // A small multi-table CSV format: sections are separated by a `#SECTION,<name>`
 // marker row followed by a header row, then data rows. This keeps the file a
@@ -45,6 +45,18 @@ export function stateToCsv(state: AppState): string {
   ])
   const meditationRows = state.meditationSessions.map((m) => [m.id, m.date, m.durationMinutes, m.soundscape])
   const gameRows = state.gameScores.map((g) => [g.id, g.game, g.date, g.score, g.detail])
+  const vocabRows = state.vocabWords.map((v) => [
+    v.id,
+    v.word,
+    v.partOfSpeech,
+    v.phonetic,
+    v.definition,
+    v.example ?? '',
+    v.audioUrl ?? '',
+    v.source,
+    v.addedAt,
+    v.learned,
+  ])
 
   return [
     section('HABITS', ['id', 'name', 'icon', 'pointsPerCheckIn', 'createdAt', 'archived'], habitRows),
@@ -55,6 +67,11 @@ export function stateToCsv(state: AppState): string {
     section('READING', ['id', 'title', 'url', 'source', 'summary', 'publishedAt', 'savedAt', 'read', 'saved'], readingRows),
     section('MEDITATION', ['id', 'date', 'durationMinutes', 'soundscape'], meditationRows),
     section('GAMESCORES', ['id', 'game', 'date', 'score', 'detail'], gameRows),
+    section(
+      'VOCAB',
+      ['id', 'word', 'partOfSpeech', 'phonetic', 'definition', 'example', 'audioUrl', 'source', 'addedAt', 'learned'],
+      vocabRows
+    ),
   ].join('\n\n')
 }
 
@@ -134,6 +151,7 @@ export function csvToState(csv: string): AppState {
   state.readingList = []
   state.meditationSessions = []
   state.gameScores = []
+  state.vocabWords = []
 
   const rows = parseCsv(csv)
   const habitCheckIns = new Map<string, CheckIn[]>()
@@ -213,6 +231,22 @@ export function csvToState(csv: string): AppState {
       case 'GAMESCORES': {
         const [id, game, date, score, detail] = r
         state.gameScores.push({ id, game: game as GameScore['game'], date, score: num(score), detail })
+        break
+      }
+      case 'VOCAB': {
+        const [id, word, partOfSpeech, phonetic, definition, example, audioUrl, source, addedAt, learned] = r
+        state.vocabWords.push({
+          id,
+          word,
+          partOfSpeech,
+          phonetic,
+          definition,
+          example: orNull(example),
+          audioUrl: orNull(audioUrl),
+          source,
+          addedAt,
+          learned: bool(learned),
+        })
         break
       }
       default:

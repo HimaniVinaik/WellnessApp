@@ -3,6 +3,8 @@ import { useAppData } from '../context/AppDataContext'
 import NBackGame from '../games/NBackGame'
 import MemoryMatchGame from '../games/MemoryMatchGame'
 import MentalMathGame from '../games/MentalMathGame'
+import SplitFocusGame from '../games/SplitFocusGame'
+import VocabGame from '../games/VocabGame'
 import { GameKind } from '../types'
 import Icon, { IconName } from '../components/Icon'
 
@@ -10,6 +12,8 @@ const GAME_META: Record<GameKind, { title: string; desc: string; glyph: IconName
   nback: { title: 'N-Back', desc: 'Working memory recall challenge', glyph: 'layoutGrid' },
   memory: { title: 'Memory Match', desc: 'Card pairs, minimal moves', glyph: 'cards' },
   math: { title: 'Mental Math', desc: 'Fast arithmetic under a clock', glyph: 'divide' },
+  splitfocus: { title: 'Split Focus', desc: 'Switch fast between number and letter rules', glyph: 'splitSquare' },
+  vocab: { title: 'Word of the Day', desc: 'Learn new words with definitions & audio', glyph: 'letters' },
 }
 
 function bestScore(scores: { game: GameKind; score: number }[], game: GameKind) {
@@ -25,6 +29,8 @@ export default function GamesTab() {
   if (active === 'nback') return <NBackGame onExit={() => setActive(null)} />
   if (active === 'memory') return <MemoryMatchGame onExit={() => setActive(null)} />
   if (active === 'math') return <MentalMathGame onExit={() => setActive(null)} />
+  if (active === 'splitfocus') return <SplitFocusGame onExit={() => setActive(null)} />
+  if (active === 'vocab') return <VocabGame onExit={() => setActive(null)} />
 
   return (
     <div>

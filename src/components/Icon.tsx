@@ -42,6 +42,9 @@ export type IconName =
   | 'refresh'
   | 'arrowLeft'
   | 'rotate'
+  | 'volume'
+  | 'letters'
+  | 'splitSquare'
 
 const paths: Record<IconName, ReactNode> = {
   checkSquare: (
@@ -283,6 +286,29 @@ const paths: Record<IconName, ReactNode> = {
       <polyline points="20 3.5 20 8.5 15 8.5" />
       <path d="M20 12a8 8 0 0 1-13.7 5.7L4 15.5" />
       <polyline points="4 20.5 4 15.5 9 15.5" />
+    </>
+  ),
+  volume: (
+    <>
+      <path d="M4 9.5v5h4l5 4v-13l-5 4z" />
+      <path d="M17 8.5a5.5 5.5 0 0 1 0 7" />
+      <path d="M19.8 6a9 9 0 0 1 0 12" />
+    </>
+  ),
+  letters: (
+    <>
+      <path d="M3 17l3.5-10L10 17" />
+      <line x1="4" y1="13.5" x2="9" y2="13.5" />
+      <path d="M13 8.5h4.5a2 2 0 0 1 0 4H13v-4z" />
+      <path d="M13 12.5h5a2 2 0 0 1 0 4H13v-4z" />
+    </>
+  ),
+  splitSquare: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <circle cx="8" cy="7.5" r="1" fill="currentColor" stroke="none" />
+      <circle cx="16" cy="16.5" r="1" fill="currentColor" stroke="none" />
     </>
   ),
 }

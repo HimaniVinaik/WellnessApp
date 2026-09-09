@@ -9,6 +9,7 @@ import {
   ReadingItem,
   Skill,
   Todo,
+  VocabWord,
 } from '../types'
 import { makeId } from '../lib/id'
 import { hasCheckedInToday, todayKey, totalPoints, levelInfo } from '../lib/points'
@@ -44,6 +45,10 @@ interface Ctx {
 
   logMeditationSession: (durationMinutes: number, soundscape: string) => void
   logGameScore: (game: GameKind, score: number, detail: string) => void
+
+  addVocabWords: (items: Omit<VocabWord, 'id' | 'addedAt'>[]) => void
+  markVocabWord: (id: string, learned: boolean) => void
+  removeVocabWord: (id: string) => void
 
   syncConfig: GithubSyncConfig | null
   setSyncConfig: (cfg: GithubSyncConfig | null) => void
@@ -188,6 +193,24 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     }))
   }, [])
 
+  const addVocabWords = useCallback((items: Omit<VocabWord, 'id' | 'addedAt'>[]) => {
+    setState((s) => {
+      const existing = new Set(s.vocabWords.map((v) => v.word.toLowerCase()))
+      const fresh = items
+        .filter((it) => !existing.has(it.word.toLowerCase()))
+        .map((it) => ({ ...it, id: makeId(), addedAt: new Date().toISOString() }))
+      return { ...s, vocabWords: [...fresh, ...s.vocabWords] }
+    })
+  }, [])
+
+  const markVocabWord = useCallback((id: string, learned: boolean) => {
+    setState((s) => ({ ...s, vocabWords: s.vocabWords.map((v) => (v.id === id ? { ...v, learned } : v)) }))
+  }, [])
+
+  const removeVocabWord = useCallback((id: string) => {
+    setState((s) => ({ ...s, vocabWords: s.vocabWords.filter((v) => v.id !== id) }))
+  }, [])
+
   const pushToGithub = useCallback(
     async (passphrase: string) => {
       if (!syncConfig) throw new Error('Connect a GitHub repository first.')
@@ -244,6 +267,9 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     removeReadingItem,
     logMeditationSession,
     logGameScore,
+    addVocabWords,
+    markVocabWord,
+    removeVocabWord,
     syncConfig,
     setSyncConfig,
     pushToGithub,

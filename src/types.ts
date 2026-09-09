@@ -56,7 +56,20 @@ export interface MeditationSession {
   soundscape: string
 }
 
-export type GameKind = 'nback' | 'memory' | 'math'
+export interface VocabWord {
+  id: string
+  word: string
+  partOfSpeech: string
+  phonetic: string
+  definition: string
+  example: string | null
+  audioUrl: string | null
+  source: string
+  addedAt: string
+  learned: boolean
+}
+
+export type GameKind = 'nback' | 'memory' | 'math' | 'splitfocus' | 'vocab'
 
 export interface GameScore {
   id: string
@@ -82,6 +95,7 @@ export interface AppState {
   readingList: ReadingItem[]
   meditationSessions: MeditationSession[]
   gameScores: GameScore[]
+  vocabWords: VocabWord[]
 }
 
 export const DEFAULT_LEVELS: LevelDef[] = [
@@ -108,5 +122,6 @@ export function emptyState(): AppState {
     readingList: [],
     meditationSessions: [],
     gameScores: [],
+    vocabWords: [],
   }
 }
