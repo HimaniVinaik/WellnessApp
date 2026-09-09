@@ -1,0 +1,84 @@
+import { CheckIn, Habit, LevelDef, Skill, POINTS_PER_LEVEL } from '../types'
+
+export function todayKey(d: Date = new Date()): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+export function hasCheckedInToday(checkIns: CheckIn[]): boolean {
+  const today = todayKey()
+  return checkIns.some((c) => c.date === today)
+}
+
+function daysBetween(a: string, b: string): number {
+  const da = new Date(a + 'T00:00:00')
+  const db = new Date(b + 'T00:00:00')
+  return Math.round((db.getTime() - da.getTime()) / 86400000)
+}
+
+/** Current streak of consecutive-day check-ins, counting back from the most
+ * recent check-in. Returns 0 if the most recent check-in is older than
+ * yesterday (streak considered broken). */
+export function currentStreak(checkIns: CheckIn[]): number {
+  if (checkIns.length === 0) return 0
+  const dates = Array.from(new Set(checkIns.map((c) => c.date))).sort()
+  const latest = dates[dates.length - 1]
+  const gapFromToday = daysBetween(latest, todayKey())
+  if (gapFromToday > 1) return 0
+
+  let streak = 1
+  for (let i = dates.length - 1; i > 0; i--) {
+    const diff = daysBetween(dates[i - 1], dates[i])
+    if (diff === 1) streak++
+    else if (diff === 0) continue
+    else break
+  }
+  return streak
+}
+
+export function longestStreak(checkIns: CheckIn[]): number {
+  if (checkIns.length === 0) return 0
+  const dates = Array.from(new Set(checkIns.map((c) => c.date))).sort()
+  let best = 1
+  let run = 1
+  for (let i = 1; i < dates.length; i++) {
+    const diff = daysBetween(dates[i - 1], dates[i])
+    if (diff === 1) run++
+    else if (diff === 0) continue
+    else run = 1
+    if (run > best) best = run
+  }
+  return best
+}
+
+export const SKILL_MASTERY_DAYS = 20
+
+export function skillProgress(skill: Skill): { streak: number; percent: number; mastered: boolean } {
+  const streak = currentStreak(skill.checkIns)
+  const percent = Math.min(100, Math.round((streak / SKILL_MASTERY_DAYS) * 100))
+  return { streak, percent, mastered: !!skill.masteredAt || streak >= SKILL_MASTERY_DAYS }
+}
+
+export function totalPointsFor(checkIns: CheckIn[]): number {
+  return checkIns.reduce((sum, c) => sum + c.points, 0)
+}
+
+export function totalPoints(habits: Habit[], skills: Skill[]): number {
+  const h = habits.reduce((sum, habit) => sum + totalPointsFor(habit.checkIns), 0)
+  const s = skills.reduce((sum, skill) => sum + totalPointsFor(skill.checkIns), 0)
+  return h + s
+}
+
+export function levelForPoints(points: number): number {
+  return Math.floor(points / POINTS_PER_LEVEL) + 1
+}
+
+export function levelInfo(points: number, levels: LevelDef[]) {
+  const level = levelForPoints(points)
+  const name = levels.find((l) => l.level === level)?.name ?? `Level ${level}`
+  const pointsIntoLevel = points % POINTS_PER_LEVEL
+  const pointsToNext = POINTS_PER_LEVEL - pointsIntoLevel
+  return { level, name, pointsIntoLevel, pointsToNext, percent: (pointsIntoLevel / POINTS_PER_LEVEL) * 100 }
+}
