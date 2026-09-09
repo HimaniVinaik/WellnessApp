@@ -4,6 +4,7 @@ import { useToast } from '../context/ToastContext'
 import { verifyAccess } from '../lib/github'
 import { loadRememberedPassphrase, rememberPassphrase, forgetPassphrase } from '../lib/storage'
 import { LevelDef, POINTS_PER_LEVEL } from '../types'
+import Icon from '../components/Icon'
 
 function LevelEditor() {
   const { state, setLevels, level } = useAppData()
@@ -190,7 +191,9 @@ export default function ProfileTab() {
   return (
     <div>
       <div className="card" style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 44 }}>🏔️</div>
+        <div style={{ color: 'var(--primary)', display: 'flex', justifyContent: 'center' }}>
+          <Icon name="mountain" size={40} strokeWidth={1.4} />
+        </div>
         <h2 style={{ margin: '4px 0 0' }}>{level.name}</h2>
         <div className="hint">Level {level.level}</div>
         <div className="progress-track" style={{ margin: '14px 0 6px' }}>

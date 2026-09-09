@@ -2,12 +2,26 @@ import { useMemo, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
 import { hasCheckedInToday, currentStreak } from '../lib/points'
 import { Habit } from '../types'
+import Icon, { IconName } from '../components/Icon'
 
-const EMOJIS = ['💧', '🏃', '🧘', '📚', '🥗', '😴', '✍️', '🚭', '🌞', '🧹', '🎯', '🎸']
+const ICONS: IconName[] = [
+  'droplet',
+  'activity',
+  'sun',
+  'bookOpen',
+  'bowl',
+  'moon',
+  'pencil',
+  'ban',
+  'sparkles',
+  'target',
+  'musicNote',
+  'leaf',
+]
 
-function AddHabitSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: string, emoji: string, pts: number) => void }) {
+function AddHabitSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: string, icon: string, pts: number) => void }) {
   const [name, setName] = useState('')
-  const [emoji, setEmoji] = useState(EMOJIS[0])
+  const [icon, setIcon] = useState<IconName>(ICONS[0])
   const [points, setPoints] = useState(10)
 
   return (
@@ -21,9 +35,9 @@ function AddHabitSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: 
         <div className="field">
           <label className="field-label">Icon</label>
           <div className="emoji-picker">
-            {EMOJIS.map((e) => (
-              <button key={e} className={emoji === e ? 'active' : ''} onClick={() => setEmoji(e)} type="button">
-                {e}
+            {ICONS.map((i) => (
+              <button key={i} className={icon === i ? 'active' : ''} onClick={() => setIcon(i)} type="button">
+                <Icon name={i} size={18} />
               </button>
             ))}
           </div>
@@ -46,7 +60,7 @@ function AddHabitSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: 
           disabled={!name.trim()}
           onClick={() => {
             if (!name.trim()) return
-            onAdd(name.trim(), emoji, points)
+            onAdd(name.trim(), icon, points)
             onClose()
           }}
         >
@@ -89,15 +103,17 @@ function HabitCard({ habit }: { habit: Habit }) {
   return (
     <div className="card habit-card">
       <div className="habit-top">
-        <div className="habit-emoji">{habit.emoji}</div>
+        <div className="habit-emoji">
+          <Icon name={(habit.icon as IconName) || 'target'} size={22} />
+        </div>
         <div className="habit-info">
           <h3>{habit.name}</h3>
           <div className="meta">
-            {streak > 0 ? `🔥 ${streak} day streak` : 'Start today'} · {habit.pointsPerCheckIn} pts
+            {streak > 0 ? `${streak}-day streak` : 'Start today'} · {habit.pointsPerCheckIn} pts
           </div>
         </div>
         <button className={`check-btn ${done ? 'done' : ''}`} onClick={() => checkInHabit(habit.id)} disabled={done}>
-          {done ? '✓' : ''}
+          {done && <Icon name="check" size={18} strokeWidth={2.4} />}
         </button>
       </div>
       <WeekStrip checkIns={habit.checkIns} />
@@ -127,7 +143,9 @@ export default function HabitsTab() {
       <div className="section-title">Today's Habits</div>
       {activeHabits.length === 0 ? (
         <div className="card empty-state">
-          <div className="glyph">🌿</div>
+          <div className="glyph">
+            <Icon name="leaf" size={34} strokeWidth={1.4} />
+          </div>
           <div>No habits yet. Small steps, repeated daily, build a calm mind.</div>
         </div>
       ) : (
@@ -167,7 +185,7 @@ export default function HabitsTab() {
         {pendingTodos.map((t) => (
           <div className="todo-item" key={t.id}>
             <div className="todo-check" onClick={() => toggleTodo(t.id)}>
-              ✓
+              <Icon name="check" size={13} strokeWidth={2.6} />
             </div>
             <div className="todo-text">{t.text}</div>
             <button className="icon-btn" onClick={() => deleteTodo(t.id)}>
@@ -178,7 +196,7 @@ export default function HabitsTab() {
         {doneTodos.map((t) => (
           <div className="todo-item" key={t.id}>
             <div className="todo-check done" onClick={() => toggleTodo(t.id)}>
-              ✓
+              <Icon name="check" size={13} strokeWidth={2.6} />
             </div>
             <div className="todo-text done">{t.text}</div>
             <button className="icon-btn" onClick={() => deleteTodo(t.id)}>

@@ -2,12 +2,26 @@ import { useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
 import { hasCheckedInToday, skillProgress, SKILL_MASTERY_DAYS } from '../lib/points'
 import { Skill } from '../types'
+import Icon, { IconName } from '../components/Icon'
 
-const EMOJIS = ['🎹', '🖌️', '💻', '🗣️', '🍳', '📐', '♟️', '🎤', '🧵', '📷', '🪴', '🧗']
+const ICONS: IconName[] = [
+  'keys',
+  'brush',
+  'code',
+  'message',
+  'chefHat',
+  'ruler',
+  'crown',
+  'mic',
+  'pencil',
+  'camera',
+  'sprout',
+  'mountain',
+]
 
-function AddSkillSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: string, emoji: string, pts: number) => void }) {
+function AddSkillSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: string, icon: string, pts: number) => void }) {
   const [name, setName] = useState('')
-  const [emoji, setEmoji] = useState(EMOJIS[0])
+  const [icon, setIcon] = useState<IconName>(ICONS[0])
   const [points, setPoints] = useState(15)
 
   return (
@@ -21,9 +35,9 @@ function AddSkillSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: 
         <div className="field">
           <label className="field-label">Icon</label>
           <div className="emoji-picker">
-            {EMOJIS.map((e) => (
-              <button key={e} className={emoji === e ? 'active' : ''} onClick={() => setEmoji(e)} type="button">
-                {e}
+            {ICONS.map((i) => (
+              <button key={i} className={icon === i ? 'active' : ''} onClick={() => setIcon(i)} type="button">
+                <Icon name={i} size={18} />
               </button>
             ))}
           </div>
@@ -48,7 +62,7 @@ function AddSkillSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: 
           disabled={!name.trim()}
           onClick={() => {
             if (!name.trim()) return
-            onAdd(name.trim(), emoji, points)
+            onAdd(name.trim(), icon, points)
             onClose()
           }}
         >
@@ -67,7 +81,9 @@ function SkillCard({ skill }: { skill: Skill }) {
   return (
     <div className="card skill-card">
       <div className="habit-top">
-        <div className="habit-emoji">{skill.emoji}</div>
+        <div className="habit-emoji">
+          <Icon name={(skill.icon as IconName) || 'target'} size={22} />
+        </div>
         <div className="habit-info">
           <h3>{skill.name}</h3>
           <div className="meta">
@@ -78,7 +94,7 @@ function SkillCard({ skill }: { skill: Skill }) {
           <span className="skill-badge mastered">Mastered</span>
         ) : (
           <button className={`check-btn ${done ? 'done' : ''}`} onClick={() => checkInSkill(skill.id)} disabled={done}>
-            {done ? '✓' : ''}
+            {done && <Icon name="check" size={18} strokeWidth={2.4} />}
           </button>
         )}
       </div>
@@ -109,7 +125,9 @@ export default function SkillsTab() {
       <div className="section-title">In Progress</div>
       {inProgress.length === 0 ? (
         <div className="card empty-state">
-          <div className="glyph">🌱</div>
+          <div className="glyph">
+            <Icon name="sprout" size={34} strokeWidth={1.4} />
+          </div>
           <div>Pick a skill you want to master and check in daily for 20 days straight.</div>
         </div>
       ) : (

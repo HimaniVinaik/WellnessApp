@@ -4,11 +4,12 @@ import NBackGame from '../games/NBackGame'
 import MemoryMatchGame from '../games/MemoryMatchGame'
 import MentalMathGame from '../games/MentalMathGame'
 import { GameKind } from '../types'
+import Icon, { IconName } from '../components/Icon'
 
-const GAME_META: Record<GameKind, { title: string; desc: string; glyph: string }> = {
-  nback: { title: 'N-Back', desc: 'Working memory recall challenge', glyph: '🔲' },
-  memory: { title: 'Memory Match', desc: 'Card pairs, minimal moves', glyph: '🃏' },
-  math: { title: 'Mental Math', desc: 'Fast arithmetic under a clock', glyph: '➗' },
+const GAME_META: Record<GameKind, { title: string; desc: string; glyph: IconName }> = {
+  nback: { title: 'N-Back', desc: 'Working memory recall challenge', glyph: 'layoutGrid' },
+  memory: { title: 'Memory Match', desc: 'Card pairs, minimal moves', glyph: 'cards' },
+  math: { title: 'Mental Math', desc: 'Fast arithmetic under a clock', glyph: 'divide' },
 }
 
 function bestScore(scores: { game: GameKind; score: number }[], game: GameKind) {
@@ -34,7 +35,9 @@ export default function GamesTab() {
           const best = bestScore(state.gameScores, g)
           return (
             <button key={g} className="game-tile" onClick={() => setActive(g)}>
-              <div className="glyph">{meta.glyph}</div>
+              <div className="glyph">
+                <Icon name={meta.glyph} size={26} strokeWidth={1.6} />
+              </div>
               <h3>{meta.title}</h3>
               <p>{meta.desc}</p>
               {best !== null && <span className="pill">Best {best}</span>}

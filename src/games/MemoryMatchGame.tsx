@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
+import Icon, { IconName } from '../components/Icon'
 
-const ICON_SETS: Record<string, string[]> = {
-  Easy: ['🌿', '🌊', '🌙', '🔥', '🌸', '⭐'],
-  Medium: ['🌿', '🌊', '🌙', '🔥', '🌸', '⭐', '🍃', '🌾'],
+const ICON_SETS: Record<string, IconName[]> = {
+  Easy: ['leaf', 'waves', 'moon', 'sun', 'droplet', 'star'],
+  Medium: ['leaf', 'waves', 'moon', 'sun', 'droplet', 'star', 'mountain', 'compass'],
 }
 
 interface Card {
   key: string
-  icon: string
+  icon: IconName
   flipped: boolean
   matched: boolean
 }
@@ -22,7 +23,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-function buildDeck(icons: string[]): Card[] {
+function buildDeck(icons: IconName[]): Card[] {
   const pairs = shuffle([...icons, ...icons])
   return pairs.map((icon, i) => ({ key: `${icon}-${i}`, icon, flipped: false, matched: false }))
 }
@@ -155,7 +156,7 @@ export default function MemoryMatchGame({ onExit }: { onExit: () => void }) {
               className={`memory-card ${c.flipped ? 'flipped' : ''} ${c.matched ? 'matched' : ''}`}
               onClick={() => flip(i)}
             >
-              {c.flipped || c.matched ? c.icon : ''}
+              <Icon name={c.icon} size={26} strokeWidth={1.6} />
             </div>
           ))}
         </div>

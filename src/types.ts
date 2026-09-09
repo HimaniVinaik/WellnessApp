@@ -6,7 +6,7 @@ export interface CheckIn {
 export interface Habit {
   id: string
   name: string
-  emoji: string
+  icon: string
   pointsPerCheckIn: number
   createdAt: string
   checkIns: CheckIn[]
@@ -16,7 +16,7 @@ export interface Habit {
 export interface Skill {
   id: string
   name: string
-  emoji: string
+  icon: string
   pointsPerCheckIn: number
   createdAt: string
   checkIns: CheckIn[]

@@ -171,9 +171,8 @@ select {
   min-width: 0;
 }
 
-.tab-btn .icon {
-  font-size: 21px;
-  line-height: 1;
+.tab-btn svg {
+  display: block;
 }
 
 .tab-btn.active {
@@ -318,7 +317,9 @@ select {
 }
 
 .empty-state .glyph {
-  font-size: 40px;
+  display: flex;
+  justify-content: center;
+  color: var(--primary);
   margin-bottom: 10px;
 }
 
@@ -472,7 +473,7 @@ select {
 }
 
 .game-tile .glyph {
-  font-size: 30px;
+  color: var(--primary-dark);
 }
 
 .game-tile h3 {
@@ -656,9 +657,9 @@ select {
 }
 
 .sound-tile .glyph {
-  font-size: 22px;
-  display: block;
-  margin-bottom: 4px;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 6px;
 }
 
 .sound-tile .name {

@@ -2,15 +2,17 @@
 // external audio files to fetch or bundle, so it works offline and stays
 // tiny.
 
+import type { IconName } from '../components/Icon'
+
 export type SoundscapeKind = 'rain' | 'ocean' | 'wind' | 'bowl' | 'whitenoise' | 'silence'
 
-export const SOUNDSCAPES: { kind: SoundscapeKind; name: string; glyph: string }[] = [
-  { kind: 'rain', name: 'Rain', glyph: '🌧️' },
-  { kind: 'ocean', name: 'Ocean', glyph: '🌊' },
-  { kind: 'wind', name: 'Forest Wind', glyph: '🍃' },
-  { kind: 'bowl', name: 'Singing Bowl', glyph: '🎐' },
-  { kind: 'whitenoise', name: 'White Noise', glyph: '📻' },
-  { kind: 'silence', name: 'Silence', glyph: '🔕' },
+export const SOUNDSCAPES: { kind: SoundscapeKind; name: string; icon: IconName }[] = [
+  { kind: 'rain', name: 'Rain', icon: 'cloudRain' },
+  { kind: 'ocean', name: 'Ocean', icon: 'waves' },
+  { kind: 'wind', name: 'Forest Wind', icon: 'wind' },
+  { kind: 'bowl', name: 'Singing Bowl', icon: 'bell' },
+  { kind: 'whitenoise', name: 'White Noise', icon: 'waveform' },
+  { kind: 'silence', name: 'Silence', icon: 'moon' },
 ]
 
 function makeNoiseBuffer(ctx: AudioContext, seconds = 4): AudioBuffer {

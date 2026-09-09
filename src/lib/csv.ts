@@ -23,8 +23,8 @@ function section(name: string, headers: string[], rows: (string | number | boole
 }
 
 export function stateToCsv(state: AppState): string {
-  const habitRows = state.habits.map((h) => [h.id, h.name, h.emoji, h.pointsPerCheckIn, h.createdAt, h.archived])
-  const skillRows = state.skills.map((s) => [s.id, s.name, s.emoji, s.pointsPerCheckIn, s.createdAt, s.archived, s.masteredAt ?? ''])
+  const habitRows = state.habits.map((h) => [h.id, h.name, h.icon, h.pointsPerCheckIn, h.createdAt, h.archived])
+  const skillRows = state.skills.map((s) => [s.id, s.name, s.icon, s.pointsPerCheckIn, s.createdAt, s.archived, s.masteredAt ?? ''])
 
   const checkinRows: (string | number)[][] = []
   for (const h of state.habits) for (const c of h.checkIns) checkinRows.push(['habit', h.id, c.date, c.points])
@@ -47,8 +47,8 @@ export function stateToCsv(state: AppState): string {
   const gameRows = state.gameScores.map((g) => [g.id, g.game, g.date, g.score, g.detail])
 
   return [
-    section('HABITS', ['id', 'name', 'emoji', 'pointsPerCheckIn', 'createdAt', 'archived'], habitRows),
-    section('SKILLS', ['id', 'name', 'emoji', 'pointsPerCheckIn', 'createdAt', 'archived', 'masteredAt'], skillRows),
+    section('HABITS', ['id', 'name', 'icon', 'pointsPerCheckIn', 'createdAt', 'archived'], habitRows),
+    section('SKILLS', ['id', 'name', 'icon', 'pointsPerCheckIn', 'createdAt', 'archived', 'masteredAt'], skillRows),
     section('CHECKINS', ['ownerType', 'ownerId', 'date', 'points'], checkinRows),
     section('TODOS', ['id', 'text', 'done', 'createdAt', 'completedAt'], todoRows),
     section('LEVELS', ['level', 'name'], levelRows),
@@ -154,16 +154,16 @@ export function csvToState(csv: string): AppState {
     }
     switch (current) {
       case 'HABITS': {
-        const [id, name, emoji, pts, createdAt, archived] = r
-        state.habits.push({ id, name, emoji, pointsPerCheckIn: num(pts), createdAt, archived: bool(archived), checkIns: [] })
+        const [id, name, icon, pts, createdAt, archived] = r
+        state.habits.push({ id, name, icon, pointsPerCheckIn: num(pts), createdAt, archived: bool(archived), checkIns: [] })
         break
       }
       case 'SKILLS': {
-        const [id, name, emoji, pts, createdAt, archived, masteredAt] = r
+        const [id, name, icon, pts, createdAt, archived, masteredAt] = r
         state.skills.push({
           id,
           name,
-          emoji,
+          icon,
           pointsPerCheckIn: num(pts),
           createdAt,
           archived: bool(archived),

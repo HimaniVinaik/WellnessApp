@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
 import { SOUNDSCAPES, SoundscapeKind, SoundscapePlayer } from '../lib/soundscape'
+import Icon from '../components/Icon'
 
 const DURATIONS = [3, 5, 10, 15, 20, 30]
 
@@ -129,7 +130,9 @@ export default function MeditationTab() {
               className={`sound-tile ${soundscape === s.kind ? 'active' : ''}`}
               onClick={() => setSoundscape(s.kind)}
             >
-              <span className="glyph">{s.glyph}</span>
+              <span className="glyph">
+                <Icon name={s.icon} size={22} strokeWidth={1.6} />
+              </span>
               <span className="name">{s.name}</span>
             </div>
           ))}

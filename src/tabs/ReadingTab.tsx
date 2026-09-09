@@ -4,6 +4,7 @@ import { fetchAllFeeds, SEED_READING_ITEMS } from '../lib/feeds'
 import ReadingMode from '../components/ReadingMode'
 import { ReadingItem } from '../types'
 import { useToast } from '../context/ToastContext'
+import Icon from '../components/Icon'
 
 type Filter = 'all' | 'saved' | 'read'
 
@@ -54,13 +55,16 @@ export default function ReadingTab() {
         ))}
       </div>
 
-      <button className="btn btn-secondary btn-block" onClick={refresh} disabled={loading} style={{ marginBottom: 16 }}>
-        {loading ? 'Fetching new essays…' : '↻ Refresh from Aeon & friends'}
+      <button className="btn btn-secondary btn-block" style={{ marginBottom: 16 }} onClick={refresh} disabled={loading}>
+        <Icon name="refresh" size={16} strokeWidth={2} />
+        {loading ? 'Fetching new essays…' : 'Refresh from Aeon & friends'}
       </button>
 
       {list.length === 0 ? (
         <div className="card empty-state">
-          <div className="glyph">📖</div>
+          <div className="glyph">
+            <Icon name="bookOpen" size={34} strokeWidth={1.4} />
+          </div>
           <div>Nothing here yet.</div>
         </div>
       ) : (
@@ -70,11 +74,21 @@ export default function ReadingTab() {
             <h3>{item.title}</h3>
             <p>{item.summary}</p>
             <div className="row" style={{ marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
-              <button className="pill" style={{ border: 'none', cursor: 'pointer' }} onClick={() => toggleReadingSaved(item.id)}>
-                {item.saved ? '★ Saved' : '☆ Save'}
+              <button
+                className="pill"
+                style={{ border: 'none', cursor: 'pointer' }}
+                onClick={() => toggleReadingSaved(item.id)}
+              >
+                <Icon name={item.saved ? 'star' : 'starOutline'} size={13} strokeWidth={2} />
+                {item.saved ? 'Saved' : 'Save'}
               </button>
-              <button className="pill" style={{ border: 'none', cursor: 'pointer' }} onClick={() => toggleReadingRead(item.id)}>
-                {item.read ? '✓ Read' : 'Mark read'}
+              <button
+                className="pill"
+                style={{ border: 'none', cursor: 'pointer' }}
+                onClick={() => toggleReadingRead(item.id)}
+              >
+                {item.read && <Icon name="check" size={13} strokeWidth={2.4} />}
+                {item.read ? 'Read' : 'Mark read'}
               </button>
               <button className="icon-btn" style={{ marginLeft: 'auto' }} onClick={() => removeReadingItem(item.id)}>
                 ✕

@@ -21,12 +21,12 @@ interface Ctx {
   state: AppState
   points: number
   level: ReturnType<typeof levelInfo>
-  addHabit: (name: string, emoji: string, pointsPerCheckIn: number) => void
+  addHabit: (name: string, icon: string, pointsPerCheckIn: number) => void
   checkInHabit: (id: string) => void
   archiveHabit: (id: string) => void
   deleteHabit: (id: string) => void
 
-  addSkill: (name: string, emoji: string, pointsPerCheckIn: number) => void
+  addSkill: (name: string, icon: string, pointsPerCheckIn: number) => void
   checkInSkill: (id: string) => void
   archiveSkill: (id: string) => void
   deleteSkill: (id: string) => void
@@ -69,11 +69,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     else clearSyncConfig()
   }, [])
 
-  const addHabit = useCallback((name: string, emoji: string, pointsPerCheckIn: number) => {
+  const addHabit = useCallback((name: string, icon: string, pointsPerCheckIn: number) => {
     const habit: Habit = {
       id: makeId(),
       name,
-      emoji,
+      icon,
       pointsPerCheckIn,
       createdAt: new Date().toISOString(),
       checkIns: [],
@@ -100,11 +100,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, habits: s.habits.filter((h) => h.id !== id) }))
   }, [])
 
-  const addSkill = useCallback((name: string, emoji: string, pointsPerCheckIn: number) => {
+  const addSkill = useCallback((name: string, icon: string, pointsPerCheckIn: number) => {
     const skill: Skill = {
       id: makeId(),
       name,
-      emoji,
+      icon,
       pointsPerCheckIn,
       createdAt: new Date().toISOString(),
       checkIns: [],
