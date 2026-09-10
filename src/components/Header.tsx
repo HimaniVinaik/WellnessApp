@@ -20,7 +20,7 @@ export default function Header({ tab }: { tab: string }) {
         </div>
         <div>
           <div className="label">{level.name}</div>
-          <div className="sub">{points} pts</div>
+          <div className="sub">{level.readyToLevelUp ? 'Check in mandatory habits to level up' : `${points} pts`}</div>
         </div>
       </div>
     </header>

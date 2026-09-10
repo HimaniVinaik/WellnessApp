@@ -11,6 +11,7 @@ export interface Habit {
   createdAt: string
   checkIns: CheckIn[]
   archived: boolean
+  mandatory: boolean
 }
 
 export interface Skill {
@@ -162,6 +163,7 @@ export interface AppState {
   mealLogs: MealLog[]
   spanishCards: SpanishCard[]
   codingSolved: CodingSolved[]
+  unlockedLevel: number
 }
 
 export const SLEEP_BONUS_THRESHOLD = 90
@@ -188,7 +190,7 @@ export const DEFAULT_LEVELS: LevelDef[] = [
   { level: 10, name: 'Enlightened' },
 ]
 
-export const POINTS_PER_LEVEL = 1000
+export const POINTS_PER_LEVEL = 2000
 
 export function emptyState(): AppState {
   return {
@@ -206,5 +208,6 @@ export function emptyState(): AppState {
     mealLogs: [],
     spanishCards: [],
     codingSolved: [],
+    unlockedLevel: 1,
   }
 }

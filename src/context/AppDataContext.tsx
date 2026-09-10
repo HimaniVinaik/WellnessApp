@@ -20,7 +20,7 @@ import {
   MEAL_LOG_POINTS,
 } from '../types'
 import { makeId } from '../lib/id'
-import { hasCheckedInToday, todayKey, totalPoints, levelInfo } from '../lib/points'
+import { hasCheckedInToday, todayKey, totalPoints, levelInfo, levelForPoints, mandatoryHabitsOnTrack } from '../lib/points'
 import { Profile, loadProfileSyncConfig, saveEncryptedBlob, saveProfileSyncConfig } from '../lib/profiles'
 import { csvToState, stateToCsv } from '../lib/csv'
 import { decryptText, encryptText } from '../lib/crypto'
@@ -33,7 +33,7 @@ interface Ctx {
   profile: Profile
   signOut: () => void
 
-  addHabit: (name: string, icon: string, pointsPerCheckIn: number) => void
+  addHabit: (name: string, icon: string, pointsPerCheckIn: number, mandatory: boolean) => void
   checkInHabit: (id: string) => void
   archiveHabit: (id: string) => void
   deleteHabit: (id: string) => void
@@ -127,7 +127,7 @@ export function AppDataProvider({
     [profile.id]
   )
 
-  const addHabit = useCallback((name: string, icon: string, pointsPerCheckIn: number) => {
+  const addHabit = useCallback((name: string, icon: string, pointsPerCheckIn: number, mandatory: boolean) => {
     const habit: Habit = {
       id: makeId(),
       name,
@@ -136,6 +136,7 @@ export function AppDataProvider({
       createdAt: new Date().toISOString(),
       checkIns: [],
       archived: false,
+      mandatory,
     }
     setState((s) => ({ ...s, habits: [...s.habits, habit] }))
   }, [])
@@ -371,7 +372,17 @@ export function AppDataProvider({
     () => totalPoints(state),
     [state.habits, state.skills, state.activityLogs, state.sleepLogs, state.mealLogs]
   )
-  const level = useMemo(() => levelInfo(points, state.levels), [points, state.levels])
+  const level = useMemo(() => levelInfo(points, state.levels, state.unlockedLevel), [points, state.levels, state.unlockedLevel])
+
+  // Ratchet unlockedLevel forward whenever the point threshold for a new
+  // level is reached and today's mandatory habits are all checked in.
+  // unlockedLevel never decreases, so a missed day only pauses leveling up.
+  useEffect(() => {
+    const rawLevel = levelForPoints(points)
+    if (rawLevel > state.unlockedLevel && mandatoryHabitsOnTrack(state.habits)) {
+      setState((s) => (rawLevel > s.unlockedLevel ? { ...s, unlockedLevel: rawLevel } : s))
+    }
+  }, [points, state.habits, state.unlockedLevel])
 
   const value: Ctx = {
     state,

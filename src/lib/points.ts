@@ -88,10 +88,21 @@ export function levelForPoints(points: number): number {
   return Math.floor(points / POINTS_PER_LEVEL) + 1
 }
 
-export function levelInfo(points: number, levels: LevelDef[]) {
-  const level = levelForPoints(points)
+/** Mandatory habits must be checked in every day to permit leveling up.
+ * True (on track) when there are no active mandatory habits, or every
+ * active mandatory habit has already been checked in today. */
+export function mandatoryHabitsOnTrack(habits: Habit[]): boolean {
+  const mandatory = habits.filter((h) => h.mandatory && !h.archived)
+  if (mandatory.length === 0) return true
+  return mandatory.every((h) => hasCheckedInToday(h.checkIns))
+}
+
+export function levelInfo(points: number, levels: LevelDef[], unlockedLevel: number) {
+  const rawLevel = levelForPoints(points)
+  const level = Math.min(rawLevel, unlockedLevel)
   const name = levels.find((l) => l.level === level)?.name ?? `Level ${level}`
   const pointsIntoLevel = points % POINTS_PER_LEVEL
   const pointsToNext = POINTS_PER_LEVEL - pointsIntoLevel
-  return { level, name, pointsIntoLevel, pointsToNext, percent: (pointsIntoLevel / POINTS_PER_LEVEL) * 100 }
+  const percent = level < rawLevel ? 100 : (pointsIntoLevel / POINTS_PER_LEVEL) * 100
+  return { level, name, pointsIntoLevel, pointsToNext, percent, readyToLevelUp: rawLevel > unlockedLevel }
 }

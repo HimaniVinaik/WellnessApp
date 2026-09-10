@@ -36,7 +36,7 @@ function section(name: string, headers: string[], rows: (string | number | boole
 }
 
 export function stateToCsv(state: AppState): string {
-  const habitRows = state.habits.map((h) => [h.id, h.name, h.icon, h.pointsPerCheckIn, h.createdAt, h.archived])
+  const habitRows = state.habits.map((h) => [h.id, h.name, h.icon, h.pointsPerCheckIn, h.createdAt, h.archived, h.mandatory])
   const skillRows = state.skills.map((s) => [s.id, s.name, s.icon, s.pointsPerCheckIn, s.createdAt, s.archived, s.masteredAt ?? ''])
 
   const checkinRows: (string | number)[][] = []
@@ -87,8 +87,10 @@ export function stateToCsv(state: AppState): string {
   const spanishRows = state.spanishCards.map((c) => [c.id, c.spanish, c.english, c.pronunciation, c.category, c.addedAt, c.learned])
   const codingRows = state.codingSolved.map((c) => [c.id, c.problemId, c.difficulty, c.language, c.solvedAt, c.points])
 
+  const metaRows = [['unlockedLevel', state.unlockedLevel]]
+
   return [
-    section('HABITS', ['id', 'name', 'icon', 'pointsPerCheckIn', 'createdAt', 'archived'], habitRows),
+    section('HABITS', ['id', 'name', 'icon', 'pointsPerCheckIn', 'createdAt', 'archived', 'mandatory'], habitRows),
     section('SKILLS', ['id', 'name', 'icon', 'pointsPerCheckIn', 'createdAt', 'archived', 'masteredAt'], skillRows),
     section('CHECKINS', ['ownerType', 'ownerId', 'date', 'points'], checkinRows),
     section('TODOS', ['id', 'text', 'done', 'createdAt', 'completedAt'], todoRows),
@@ -111,6 +113,7 @@ export function stateToCsv(state: AppState): string {
     section('MEALLOGS', ['id', 'date', 'mealType', 'description', 'quality', 'calories', 'points'], mealRows),
     section('SPANISH', ['id', 'spanish', 'english', 'pronunciation', 'category', 'addedAt', 'learned'], spanishRows),
     section('CODINGSOLVED', ['id', 'problemId', 'difficulty', 'language', 'solvedAt', 'points'], codingRows),
+    section('META', ['key', 'value'], metaRows),
   ].join('\n\n')
 }
 
@@ -217,8 +220,17 @@ export function csvToState(csv: string): AppState {
     }
     switch (current) {
       case 'HABITS': {
-        const [id, name, icon, pts, createdAt, archived] = r
-        state.habits.push({ id, name, icon, pointsPerCheckIn: num(pts), createdAt, archived: bool(archived), checkIns: [] })
+        const [id, name, icon, pts, createdAt, archived, mandatory] = r
+        state.habits.push({
+          id,
+          name,
+          icon,
+          pointsPerCheckIn: num(pts),
+          createdAt,
+          archived: bool(archived),
+          mandatory: bool(mandatory),
+          checkIns: [],
+        })
         break
       }
       case 'SKILLS': {
@@ -347,6 +359,11 @@ export function csvToState(csv: string): AppState {
           solvedAt,
           points: num(points),
         })
+        break
+      }
+      case 'META': {
+        const [key, value] = r
+        if (key === 'unlockedLevel') state.unlockedLevel = num(value)
         break
       }
       default:

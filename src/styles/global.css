@@ -1050,6 +1050,28 @@ select {
   color: white;
 }
 
+.skill-badge.mandatory {
+  margin-left: 8px;
+  background: var(--warning, #e0a13d);
+  color: white;
+  vertical-align: middle;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggle-row input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary, #4a7c6f);
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;

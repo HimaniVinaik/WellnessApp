@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
 import { hasCheckedInToday, currentStreak, skillProgress, SKILL_MASTERY_DAYS } from '../lib/points'
-import { Habit, Skill } from '../types'
+import { Habit, Skill, POINTS_PER_LEVEL } from '../types'
 import Icon, { IconName } from '../components/Icon'
 
 const HABIT_ICONS: IconName[] = [
@@ -58,10 +58,17 @@ const SKILL_ICONS: IconName[] = [
   'compass',
 ]
 
-function AddHabitSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: string, icon: string, pts: number) => void }) {
+function AddHabitSheet({
+  onClose,
+  onAdd,
+}: {
+  onClose: () => void
+  onAdd: (name: string, icon: string, pts: number, mandatory: boolean) => void
+}) {
   const [name, setName] = useState('')
   const [icon, setIcon] = useState<IconName>(HABIT_ICONS[0])
   const [points, setPoints] = useState(10)
+  const [mandatory, setMandatory] = useState(false)
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -92,14 +99,23 @@ function AddHabitSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: 
             onChange={(e) => setPoints(Number(e.target.value))}
             style={{ width: '100%' }}
           />
-          <div className="hint">1000 points levels you up. Weight this habit however you like.</div>
+          <div className="hint">{POINTS_PER_LEVEL} points levels you up. Weight this habit however you like.</div>
+        </div>
+        <div className="field">
+          <label className="toggle-row">
+            <input type="checkbox" checked={mandatory} onChange={(e) => setMandatory(e.target.checked)} />
+            <span>Mandatory</span>
+          </label>
+          <div className="hint">
+            Mandatory habits must be checked in every single day, or leveling up pauses until you're caught up.
+          </div>
         </div>
         <button
           className="btn btn-primary btn-block"
           disabled={!name.trim()}
           onClick={() => {
             if (!name.trim()) return
-            onAdd(name.trim(), icon, points)
+            onAdd(name.trim(), icon, points, mandatory)
             onClose()
           }}
         >
@@ -200,7 +216,10 @@ function HabitCard({ habit }: { habit: Habit }) {
           <Icon name={(habit.icon as IconName) || 'target'} size={22} />
         </div>
         <div className="habit-info">
-          <h3>{habit.name}</h3>
+          <h3>
+            {habit.name}
+            {habit.mandatory && <span className="skill-badge mandatory">Mandatory</span>}
+          </h3>
           <div className="meta">
             {streak > 0 ? `${streak}-day streak` : 'Start today'} · {habit.pointsPerCheckIn} pts
           </div>
@@ -210,6 +229,11 @@ function HabitCard({ habit }: { habit: Habit }) {
         </button>
       </div>
       <WeekStrip checkIns={habit.checkIns} />
+      {habit.mandatory && !done && (
+        <div className="hint" style={{ marginTop: 8 }}>
+          Check in today to keep leveling up on track.
+        </div>
+      )}
       <div className="row" style={{ justifyContent: 'flex-end' }}>
         <button className="icon-btn" onClick={() => archiveHabit(habit.id)}>
           {habit.archived ? 'Unarchive' : 'Archive'}
