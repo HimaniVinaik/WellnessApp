@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
 import { fetchAllFeeds, SEED_READING_ITEMS } from '../lib/feeds'
 import { refreshStories } from '../lib/stories'
+import { SEED_STORIES } from '../lib/seedStories'
 import ReadingMode from '../components/ReadingMode'
 import StoryReadingMode from '../components/StoryReadingMode'
 import { ReadingItem, Story } from '../types'
@@ -32,6 +33,12 @@ export default function ReadingTab() {
   useEffect(() => {
     if (state.readingList.length === 0) {
       addReadingItems(SEED_READING_ITEMS)
+    }
+    if (state.stories.length === 0) {
+      // Guaranteed to work with no network at all — the live poll below adds
+      // to this, but the section is never empty even if every online source
+      // is unreachable.
+      addStories(SEED_STORIES)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

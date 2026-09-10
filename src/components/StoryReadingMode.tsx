@@ -16,9 +16,15 @@ export default function StoryReadingMode({ story, onClose }: { story: Story; onC
         {paragraphs.map((p, i) => (
           <p key={i}>{p.replace(/\s+/g, ' ').trim()}</p>
         ))}
-        <a className="r-link" href={story.url} target="_blank" rel="noreferrer">
-          View the original on Project Gutenberg →
-        </a>
+        {story.url ? (
+          <a className="r-link" href={story.url} target="_blank" rel="noreferrer">
+            View the original online →
+          </a>
+        ) : (
+          <div className="hint" style={{ marginTop: 16 }}>
+            An original story written for this app, not a historical text.
+          </div>
+        )}
       </div>
     </div>
   )
