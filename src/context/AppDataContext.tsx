@@ -5,6 +5,7 @@ import {
   CodingSolved,
   GameKind,
   GithubSyncConfig,
+  Goal,
   Habit,
   LevelDef,
   MealType,
@@ -12,6 +13,7 @@ import {
   ReadingItem,
   Skill,
   SpanishCard,
+  Story,
   Todo,
   VocabWord,
   emptyState,
@@ -47,12 +49,22 @@ interface Ctx {
   toggleTodo: (id: string) => void
   deleteTodo: (id: string) => void
 
+  addGoal: (title: string, description: string, icon: string, pointsReward: number, targetDate: string | null) => void
+  completeGoal: (id: string) => void
+  archiveGoal: (id: string) => void
+  deleteGoal: (id: string) => void
+
   setLevels: (levels: LevelDef[]) => void
 
   addReadingItems: (items: Omit<ReadingItem, 'id' | 'savedAt' | 'read' | 'saved'>[]) => void
   toggleReadingRead: (id: string) => void
   toggleReadingSaved: (id: string) => void
   removeReadingItem: (id: string) => void
+
+  addStories: (items: Omit<Story, 'id' | 'addedAt' | 'read' | 'saved'>[]) => void
+  toggleStoryRead: (id: string) => void
+  toggleStorySaved: (id: string) => void
+  removeStory: (id: string) => void
 
   logMeditationSession: (durationMinutes: number, soundscape: string) => void
   logGameScore: (game: GameKind, score: number, detail: string) => void
@@ -209,6 +221,36 @@ export function AppDataProvider({
     setState((s) => ({ ...s, todos: s.todos.filter((t) => t.id !== id) }))
   }, [])
 
+  const addGoal = useCallback((title: string, description: string, icon: string, pointsReward: number, targetDate: string | null) => {
+    const goal: Goal = {
+      id: makeId(),
+      title,
+      description,
+      icon,
+      targetDate,
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+      archived: false,
+      pointsReward,
+    }
+    setState((s) => ({ ...s, goals: [goal, ...s.goals] }))
+  }, [])
+
+  const completeGoal = useCallback((id: string) => {
+    setState((s) => ({
+      ...s,
+      goals: s.goals.map((g) => (g.id === id && !g.completedAt ? { ...g, completedAt: new Date().toISOString() } : g)),
+    }))
+  }, [])
+
+  const archiveGoal = useCallback((id: string) => {
+    setState((s) => ({ ...s, goals: s.goals.map((g) => (g.id === id ? { ...g, archived: !g.archived } : g)) }))
+  }, [])
+
+  const deleteGoal = useCallback((id: string) => {
+    setState((s) => ({ ...s, goals: s.goals.filter((g) => g.id !== id) }))
+  }, [])
+
   const setLevels = useCallback((levels: LevelDef[]) => {
     setState((s) => ({ ...s, levels }))
   }, [])
@@ -233,6 +275,28 @@ export function AppDataProvider({
 
   const removeReadingItem = useCallback((id: string) => {
     setState((s) => ({ ...s, readingList: s.readingList.filter((r) => r.id !== id) }))
+  }, [])
+
+  const addStories = useCallback((items: Omit<Story, 'id' | 'addedAt' | 'read' | 'saved'>[]) => {
+    setState((s) => {
+      const existingTitles = new Set(s.stories.map((st) => st.title.toLowerCase()))
+      const fresh = items
+        .filter((it) => !existingTitles.has(it.title.toLowerCase()))
+        .map((it) => ({ ...it, id: makeId(), addedAt: new Date().toISOString(), read: false, saved: false }))
+      return { ...s, stories: [...fresh, ...s.stories] }
+    })
+  }, [])
+
+  const toggleStoryRead = useCallback((id: string) => {
+    setState((s) => ({ ...s, stories: s.stories.map((st) => (st.id === id ? { ...st, read: !st.read } : st)) }))
+  }, [])
+
+  const toggleStorySaved = useCallback((id: string) => {
+    setState((s) => ({ ...s, stories: s.stories.map((st) => (st.id === id ? { ...st, saved: !st.saved } : st)) }))
+  }, [])
+
+  const removeStory = useCallback((id: string) => {
+    setState((s) => ({ ...s, stories: s.stories.filter((st) => st.id !== id) }))
   }, [])
 
   const logMeditationSession = useCallback((durationMinutes: number, soundscape: string) => {
@@ -370,7 +434,7 @@ export function AppDataProvider({
 
   const points = useMemo(
     () => totalPoints(state),
-    [state.habits, state.skills, state.activityLogs, state.sleepLogs, state.mealLogs]
+    [state.habits, state.skills, state.goals, state.activityLogs, state.sleepLogs, state.mealLogs]
   )
   const level = useMemo(() => levelInfo(points, state.levels, state.unlockedLevel), [points, state.levels, state.unlockedLevel])
 
@@ -401,11 +465,19 @@ export function AppDataProvider({
     addTodo,
     toggleTodo,
     deleteTodo,
+    addGoal,
+    completeGoal,
+    archiveGoal,
+    deleteGoal,
     setLevels,
     addReadingItems,
     toggleReadingRead,
     toggleReadingSaved,
     removeReadingItem,
+    addStories,
+    toggleStoryRead,
+    toggleStorySaved,
+    removeStory,
     logMeditationSession,
     logGameScore,
     addVocabWords,

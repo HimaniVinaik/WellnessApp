@@ -69,19 +69,26 @@ interface PointBearing {
   points: number
 }
 
+interface CompletableGoal {
+  completedAt: string | null
+  pointsReward: number
+}
+
 export function totalPoints(state: {
   habits: Habit[]
   skills: Skill[]
+  goals: CompletableGoal[]
   activityLogs: PointBearing[]
   sleepLogs: PointBearing[]
   mealLogs: PointBearing[]
 }): number {
   const h = state.habits.reduce((sum, habit) => sum + totalPointsFor(habit.checkIns), 0)
   const s = state.skills.reduce((sum, skill) => sum + totalPointsFor(skill.checkIns), 0)
+  const g = state.goals.reduce((sum, goal) => sum + (goal.completedAt ? goal.pointsReward : 0), 0)
   const a = state.activityLogs.reduce((sum, l) => sum + l.points, 0)
   const sl = state.sleepLogs.reduce((sum, l) => sum + l.points, 0)
   const m = state.mealLogs.reduce((sum, l) => sum + l.points, 0)
-  return h + s + a + sl + m
+  return h + s + g + a + sl + m
 }
 
 export function levelForPoints(points: number): number {

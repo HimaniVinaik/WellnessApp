@@ -104,20 +104,23 @@ function parseFeedXml(xml: string, sourceName: string): FeedItem[] {
 
 const PROXY = 'https://api.allorigins.win/raw?url='
 
-async function fetchWithProxy(url: string): Promise<string> {
+/** Fetches a URL directly first (works when the source sends CORS headers),
+ * falling back to a public CORS proxy when the browser blocks the direct
+ * request. Shared by the essay feed reader and the detective-story fetcher. */
+export async function fetchTextWithProxy(url: string, accept?: string): Promise<string> {
   try {
-    const direct = await fetch(url, { headers: { Accept: 'application/rss+xml, application/xml, text/xml' } })
+    const direct = await fetch(url, accept ? { headers: { Accept: accept } } : undefined)
     if (direct.ok) return await direct.text()
   } catch {
     // CORS or network failure — fall back to proxy below.
   }
   const res = await fetch(PROXY + encodeURIComponent(url))
-  if (!res.ok) throw new Error(`Feed fetch failed (${res.status})`)
+  if (!res.ok) throw new Error(`Fetch failed (${res.status})`)
   return res.text()
 }
 
 export async function fetchOneFeed(source: FeedSource): Promise<FeedItem[]> {
-  const xml = await fetchWithProxy(source.feedUrl)
+  const xml = await fetchTextWithProxy(source.feedUrl, 'application/rss+xml, application/xml, text/xml')
   return parseFeedXml(xml, source.name)
 }
 

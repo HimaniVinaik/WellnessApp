@@ -1,19 +1,33 @@
 import { useEffect, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
 import { fetchAllFeeds, SEED_READING_ITEMS } from '../lib/feeds'
+import { refreshStories } from '../lib/stories'
 import ReadingMode from '../components/ReadingMode'
-import { ReadingItem } from '../types'
+import StoryReadingMode from '../components/StoryReadingMode'
+import { ReadingItem, Story } from '../types'
 import { useToast } from '../context/ToastContext'
 import Icon from '../components/Icon'
 
 type Filter = 'all' | 'saved' | 'read'
 
 export default function ReadingTab() {
-  const { state, addReadingItems, toggleReadingRead, toggleReadingSaved, removeReadingItem } = useAppData()
+  const {
+    state,
+    addReadingItems,
+    toggleReadingRead,
+    toggleReadingSaved,
+    removeReadingItem,
+    addStories,
+    toggleStoryRead,
+    toggleStorySaved,
+    removeStory,
+  } = useAppData()
   const { showToast } = useToast()
   const [filter, setFilter] = useState<Filter>('all')
   const [loading, setLoading] = useState(false)
+  const [storiesLoading, setStoriesLoading] = useState(false)
   const [opened, setOpened] = useState<ReadingItem | null>(null)
+  const [openedStory, setOpenedStory] = useState<Story | null>(null)
 
   useEffect(() => {
     if (state.readingList.length === 0) {
@@ -36,6 +50,24 @@ export default function ReadingTab() {
       showToast('Something went wrong fetching articles.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function refreshStoryList() {
+    setStoriesLoading(true)
+    try {
+      const existingSources = new Set(state.stories.map((s) => s.source.toLowerCase()))
+      const { items, errors } = await refreshStories(existingSources)
+      if (items.length > 0) {
+        addStories(items)
+        showToast(`Added ${items.length} new stor${items.length === 1 ? 'y' : 'ies'}${errors.length ? ` (${errors.join(', ')} unavailable)` : ''}`)
+      } else {
+        showToast('No new stories right now — try again in a bit, or you may already have them all.')
+      }
+    } catch {
+      showToast('Something went wrong fetching stories.')
+    } finally {
+      setStoriesLoading(false)
     }
   }
 
@@ -104,6 +136,61 @@ export default function ReadingTab() {
           onClose={() => {
             if (!opened.read) toggleReadingRead(opened.id)
             setOpened(null)
+          }}
+        />
+      )}
+
+      <div className="section-title">Detective Stories</div>
+      <button
+        className="btn btn-secondary btn-block"
+        style={{ marginBottom: 16 }}
+        onClick={refreshStoryList}
+        disabled={storiesLoading}
+      >
+        <Icon name="refresh" size={16} strokeWidth={2} />
+        {storiesLoading ? 'Polling Project Gutenberg…' : 'Poll for new stories'}
+      </button>
+
+      {state.stories.length === 0 ? (
+        <div className="card empty-state">
+          <div className="glyph">
+            <Icon name="compass" size={34} strokeWidth={1.4} />
+          </div>
+          <div>
+            Classic public-domain detective fiction — Sherlock Holmes, Hercule Poirot and more — fetched live from Project
+            Gutenberg. Tap "Poll for new stories" above to get started.
+          </div>
+        </div>
+      ) : (
+        state.stories.map((story) => (
+          <div className="card reading-card" key={story.id} onClick={() => setOpenedStory(story)}>
+            <div className="source">
+              {story.author} · {story.source}
+            </div>
+            <h3>{story.title}</h3>
+            <div className="row" style={{ marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
+              <button className="pill" style={{ border: 'none', cursor: 'pointer' }} onClick={() => toggleStorySaved(story.id)}>
+                <Icon name={story.saved ? 'star' : 'starOutline'} size={13} strokeWidth={2} />
+                {story.saved ? 'Saved' : 'Save'}
+              </button>
+              <button className="pill" style={{ border: 'none', cursor: 'pointer' }} onClick={() => toggleStoryRead(story.id)}>
+                {story.read && <Icon name="check" size={13} strokeWidth={2.4} />}
+                {story.read ? 'Read' : 'Mark read'}
+              </button>
+              <button className="icon-btn" style={{ marginLeft: 'auto' }} onClick={() => removeStory(story.id)}>
+                ✕
+              </button>
+            </div>
+          </div>
+        ))
+      )}
+
+      {openedStory && (
+        <StoryReadingMode
+          story={openedStory}
+          onClose={() => {
+            if (!openedStory.read) toggleStoryRead(openedStory.id)
+            setOpenedStory(null)
           }}
         />
       )}

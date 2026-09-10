@@ -4,16 +4,20 @@
 
 import type { IconName } from '../components/Icon'
 
-export type SoundscapeKind = 'rain' | 'ocean' | 'wind' | 'bowl' | 'whitenoise' | 'silence'
+export type SoundscapeKind = 'rain' | 'ocean' | 'wind' | 'bowl' | 'whitenoise' | 'silence' | 'breathing' | 'bell'
 
 export const SOUNDSCAPES: { kind: SoundscapeKind; name: string; icon: IconName }[] = [
   { kind: 'rain', name: 'Rain', icon: 'cloudRain' },
   { kind: 'ocean', name: 'Ocean', icon: 'waves' },
   { kind: 'wind', name: 'Forest Wind', icon: 'wind' },
-  { kind: 'bowl', name: 'Singing Bowl', icon: 'bell' },
+  { kind: 'bowl', name: 'Singing Bowl', icon: 'bowl' },
+  { kind: 'breathing', name: 'Breathing', icon: 'activity' },
+  { kind: 'bell', name: 'Interval Bell', icon: 'bell' },
   { kind: 'whitenoise', name: 'White Noise', icon: 'waveform' },
   { kind: 'silence', name: 'Silence', icon: 'moon' },
 ]
+
+export const BREATH_CYCLE_SECONDS = 4
 
 function makeNoiseBuffer(ctx: AudioContext, seconds = 4): AudioBuffer {
   const buffer = ctx.createBuffer(1, ctx.sampleRate * seconds, ctx.sampleRate)
@@ -47,12 +51,76 @@ export class SoundscapePlayer {
     if (this.masterGain) this.masterGain.gain.value = v
   }
 
-  play(kind: SoundscapeKind) {
+  /** `onBreathPhase` is called immediately with 'in', then again with
+   * alternating 'in'/'out' every BREATH_CYCLE_SECONDS — only relevant for
+   * the 'breathing' kind, ignored otherwise. Lets the UI show matching text. */
+  play(kind: SoundscapeKind, onBreathPhase?: (phase: 'in' | 'out') => void) {
     this.stop()
     if (kind === 'silence') return
     const ctx = this.ensureContext()
     const master = this.masterGain!
     const nodes: AudioNode[] = []
+
+    if (kind === 'breathing') {
+      const cycleMs = BREATH_CYCLE_SECONDS * 1000
+      const chime = (freq: number) => {
+        const osc = ctx.createOscillator()
+        osc.type = 'sine'
+        osc.frequency.value = freq
+        const gain = ctx.createGain()
+        gain.gain.value = 0
+        osc.connect(gain)
+        gain.connect(master)
+        osc.start()
+        const t = ctx.currentTime
+        gain.gain.setValueAtTime(0, t)
+        gain.gain.linearRampToValueAtTime(0.3, t + 0.6)
+        gain.gain.linearRampToValueAtTime(0, t + cycleMs / 1000 - 0.3)
+        window.setTimeout(() => {
+          try {
+            osc.stop()
+          } catch {
+            /* noop */
+          }
+          osc.disconnect()
+          gain.disconnect()
+        }, cycleMs)
+      }
+      let phase: 'in' | 'out' = 'in'
+      chime(330)
+      onBreathPhase?.(phase)
+      const interval = window.setInterval(() => {
+        phase = phase === 'in' ? 'out' : 'in'
+        chime(phase === 'in' ? 330 : 220)
+        onBreathPhase?.(phase)
+      }, cycleMs)
+      this.active = { nodes: [], stop: () => window.clearInterval(interval) }
+      return
+    }
+
+    if (kind === 'bell') {
+      const strike = () => {
+        const t = ctx.currentTime
+        const partials = [1, 2.4, 3.8]
+        partials.forEach((ratio, i) => {
+          const osc = ctx.createOscillator()
+          osc.type = 'sine'
+          osc.frequency.value = 440 * ratio
+          const gain = ctx.createGain()
+          const peak = i === 0 ? 0.4 : 0.15
+          gain.gain.setValueAtTime(peak, t)
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 4)
+          osc.connect(gain)
+          gain.connect(master)
+          osc.start(t)
+          osc.stop(t + 4)
+        })
+      }
+      strike()
+      const interval = window.setInterval(strike, 60000)
+      this.active = { nodes: [], stop: () => window.clearInterval(interval) }
+      return
+    }
 
     if (kind === 'whitenoise' || kind === 'rain' || kind === 'ocean' || kind === 'wind') {
       const noise = ctx.createBufferSource()

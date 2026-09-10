@@ -44,6 +44,17 @@ export function stateToCsv(state: AppState): string {
   for (const s of state.skills) for (const c of s.checkIns) checkinRows.push(['skill', s.id, c.date, c.points])
 
   const todoRows = state.todos.map((t) => [t.id, t.text, t.done, t.createdAt, t.completedAt ?? ''])
+  const goalRows = state.goals.map((g) => [
+    g.id,
+    g.title,
+    g.description,
+    g.icon,
+    g.targetDate ?? '',
+    g.createdAt,
+    g.completedAt ?? '',
+    g.archived,
+    g.pointsReward,
+  ])
   const levelRows = state.levels.map((l) => [l.level, l.name])
   const readingRows = state.readingList.map((r) => [
     r.id,
@@ -56,6 +67,7 @@ export function stateToCsv(state: AppState): string {
     r.read,
     r.saved,
   ])
+  const storyRows = state.stories.map((s) => [s.id, s.title, s.author, s.source, s.url, s.text, s.addedAt, s.read, s.saved])
   const meditationRows = state.meditationSessions.map((m) => [m.id, m.date, m.durationMinutes, m.soundscape])
   const gameRows = state.gameScores.map((g) => [g.id, g.game, g.date, g.score, g.detail])
   const vocabRows = state.vocabWords.map((v) => [
@@ -94,8 +106,14 @@ export function stateToCsv(state: AppState): string {
     section('SKILLS', ['id', 'name', 'icon', 'pointsPerCheckIn', 'createdAt', 'archived', 'masteredAt'], skillRows),
     section('CHECKINS', ['ownerType', 'ownerId', 'date', 'points'], checkinRows),
     section('TODOS', ['id', 'text', 'done', 'createdAt', 'completedAt'], todoRows),
+    section(
+      'GOALS',
+      ['id', 'title', 'description', 'icon', 'targetDate', 'createdAt', 'completedAt', 'archived', 'pointsReward'],
+      goalRows
+    ),
     section('LEVELS', ['level', 'name'], levelRows),
     section('READING', ['id', 'title', 'url', 'source', 'summary', 'publishedAt', 'savedAt', 'read', 'saved'], readingRows),
+    section('STORIES', ['id', 'title', 'author', 'source', 'url', 'text', 'addedAt', 'read', 'saved'], storyRows),
     section('MEDITATION', ['id', 'date', 'durationMinutes', 'soundscape'], meditationRows),
     section('GAMESCORES', ['id', 'game', 'date', 'score', 'detail'], gameRows),
     section(
@@ -189,8 +207,10 @@ export function csvToState(csv: string): AppState {
   state.habits = []
   state.skills = []
   state.todos = []
+  state.goals = []
   state.levels = []
   state.readingList = []
+  state.stories = []
   state.meditationSessions = []
   state.gameScores = []
   state.vocabWords = []
@@ -258,6 +278,21 @@ export function csvToState(csv: string): AppState {
       case 'TODOS': {
         const [id, text, done, createdAt, completedAt] = r
         state.todos.push({ id, text, done: bool(done), createdAt, completedAt: orNull(completedAt) })
+        break
+      }
+      case 'GOALS': {
+        const [id, title, description, icon, targetDate, createdAt, completedAt, archived, pointsReward] = r
+        state.goals.push({
+          id,
+          title,
+          description,
+          icon,
+          targetDate: orNull(targetDate),
+          createdAt,
+          completedAt: orNull(completedAt),
+          archived: bool(archived),
+          pointsReward: num(pointsReward),
+        })
         break
       }
       case 'LEVELS': {
@@ -359,6 +394,11 @@ export function csvToState(csv: string): AppState {
           solvedAt,
           points: num(points),
         })
+        break
+      }
+      case 'STORIES': {
+        const [id, title, author, source, url, text, addedAt, read, saved] = r
+        state.stories.push({ id, title, author, source, url, text, addedAt, read: bool(read), saved: bool(saved) })
         break
       }
       case 'META': {

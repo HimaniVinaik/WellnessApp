@@ -33,6 +33,18 @@ export interface Todo {
   completedAt: string | null
 }
 
+export interface Goal {
+  id: string
+  title: string
+  description: string
+  icon: string
+  targetDate: string | null // YYYY-MM-DD
+  createdAt: string
+  completedAt: string | null
+  archived: boolean
+  pointsReward: number
+}
+
 export interface LevelDef {
   level: number
   name: string
@@ -121,6 +133,18 @@ export interface SpanishCard {
   learned: boolean
 }
 
+export interface Story {
+  id: string
+  title: string
+  author: string
+  source: string
+  url: string
+  text: string
+  addedAt: string
+  read: boolean
+  saved: boolean
+}
+
 export interface CodingSolved {
   id: string
   problemId: string
@@ -152,8 +176,10 @@ export interface AppState {
   habits: Habit[]
   skills: Skill[]
   todos: Todo[]
+  goals: Goal[]
   levels: LevelDef[]
   readingList: ReadingItem[]
+  stories: Story[]
   meditationSessions: MeditationSession[]
   gameScores: GameScore[]
   vocabWords: VocabWord[]
@@ -197,8 +223,10 @@ export function emptyState(): AppState {
     habits: [],
     skills: [],
     todos: [],
+    goals: [],
     levels: DEFAULT_LEVELS,
     readingList: [],
+    stories: [],
     meditationSessions: [],
     gameScores: [],
     vocabWords: [],

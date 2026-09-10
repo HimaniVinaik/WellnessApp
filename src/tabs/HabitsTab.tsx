@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
 import { hasCheckedInToday, currentStreak, skillProgress, SKILL_MASTERY_DAYS } from '../lib/points'
-import { Habit, Skill, POINTS_PER_LEVEL } from '../types'
+import { Goal, Habit, Skill, POINTS_PER_LEVEL } from '../types'
 import Icon, { IconName } from '../components/Icon'
 
 const HABIT_ICONS: IconName[] = [
@@ -120,6 +120,94 @@ function AddHabitSheet({
           }}
         >
           Add habit
+        </button>
+      </div>
+    </div>
+  )
+}
+
+const GOAL_ICONS: IconName[] = [
+  'flag',
+  'target',
+  'mountain',
+  'compass',
+  'star',
+  'crown',
+  'sprout',
+  'globe',
+  'anchor',
+  'shield',
+  'sparkles',
+  'sun',
+]
+
+function AddGoalSheet({
+  onClose,
+  onAdd,
+}: {
+  onClose: () => void
+  onAdd: (title: string, description: string, icon: string, pts: number, targetDate: string | null) => void
+}) {
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [icon, setIcon] = useState<IconName>(GOAL_ICONS[0])
+  const [points, setPoints] = useState(100)
+  const [targetDate, setTargetDate] = useState('')
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+        <h2>New Goal</h2>
+        <div className="field">
+          <label className="field-label">Goal</label>
+          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Run a 10k" />
+        </div>
+        <div className="field">
+          <label className="field-label">Notes (optional)</label>
+          <input
+            className="input"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Why this matters, or how you'll get there"
+          />
+        </div>
+        <div className="field">
+          <label className="field-label">Icon</label>
+          <div className="emoji-picker">
+            {GOAL_ICONS.map((i) => (
+              <button key={i} className={icon === i ? 'active' : ''} onClick={() => setIcon(i)} type="button">
+                <Icon name={i} size={18} />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          <label className="field-label">Target date (optional)</label>
+          <input className="input" type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
+        </div>
+        <div className="field">
+          <label className="field-label">Points on completion: {points}</label>
+          <input
+            type="range"
+            min={25}
+            max={500}
+            step={25}
+            value={points}
+            onChange={(e) => setPoints(Number(e.target.value))}
+            style={{ width: '100%' }}
+          />
+          <div className="hint">A bigger reward for a bigger achievement — awarded once, when you mark it complete.</div>
+        </div>
+        <button
+          className="btn btn-primary btn-block"
+          disabled={!title.trim()}
+          onClick={() => {
+            if (!title.trim()) return
+            onAdd(title.trim(), description.trim(), icon, points, targetDate || null)
+            onClose()
+          }}
+        >
+          Add goal
         </button>
       </div>
     </div>
@@ -246,6 +334,56 @@ function HabitCard({ habit }: { habit: Habit }) {
   )
 }
 
+function daysUntil(targetDate: string): number {
+  const target = new Date(targetDate + 'T00:00:00')
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return Math.round((target.getTime() - today.getTime()) / 86400000)
+}
+
+function GoalCard({ goal }: { goal: Goal }) {
+  const { completeGoal, archiveGoal, deleteGoal } = useAppData()
+  const done = !!goal.completedAt
+
+  let dateLabel: string | null = null
+  if (goal.targetDate) {
+    const days = daysUntil(goal.targetDate)
+    dateLabel = days > 0 ? `${days} day${days === 1 ? '' : 's'} left` : days === 0 ? 'Due today' : `${-days} day${days === -1 ? '' : 's'} overdue`
+  }
+
+  return (
+    <div className="card habit-card">
+      <div className="habit-top">
+        <div className="habit-emoji">
+          <Icon name={(goal.icon as IconName) || 'flag'} size={22} />
+        </div>
+        <div className="habit-info">
+          <h3>{goal.title}</h3>
+          <div className="meta">
+            {goal.pointsReward} pts{dateLabel ? ` · ${dateLabel}` : ''}
+          </div>
+        </div>
+        {done ? (
+          <span className="skill-badge mastered">Done</span>
+        ) : (
+          <button className="check-btn" onClick={() => completeGoal(goal.id)}>
+            <Icon name="check" size={18} strokeWidth={2.4} />
+          </button>
+        )}
+      </div>
+      {goal.description && <div className="hint" style={{ marginTop: 8 }}>{goal.description}</div>}
+      <div className="row" style={{ justifyContent: 'flex-end' }}>
+        <button className="icon-btn" onClick={() => archiveGoal(goal.id)}>
+          {goal.archived ? 'Unarchive' : 'Archive'}
+        </button>
+        <button className="icon-btn" onClick={() => deleteGoal(goal.id)}>
+          Delete
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function SkillCard({ skill }: { skill: Skill }) {
   const { checkInSkill, archiveSkill, deleteSkill } = useAppData()
   const done = hasCheckedInToday(skill.checkIns)
@@ -287,14 +425,19 @@ function SkillCard({ skill }: { skill: Skill }) {
 }
 
 export default function HabitsTab() {
-  const { state, addHabit, addSkill, addTodo, toggleTodo, deleteTodo } = useAppData()
+  const { state, addHabit, addSkill, addGoal, addTodo, toggleTodo, deleteTodo } = useAppData()
   const [showAddHabit, setShowAddHabit] = useState(false)
   const [showAddSkill, setShowAddSkill] = useState(false)
+  const [showAddGoal, setShowAddGoal] = useState(false)
   const [todoText, setTodoText] = useState('')
 
   const activeHabits = state.habits.filter((h) => !h.archived)
   const pendingTodos = state.todos.filter((t) => !t.done)
   const doneTodos = state.todos.filter((t) => t.done)
+
+  const activeGoals = state.goals.filter((g) => !g.archived)
+  const openGoals = activeGoals.filter((g) => !g.completedAt)
+  const completedGoals = activeGoals.filter((g) => g.completedAt)
 
   const activeSkills = state.skills.filter((s) => !s.archived)
   const masteredSkills = activeSkills.filter((s) => skillProgress(s).mastered)
@@ -316,6 +459,29 @@ export default function HabitsTab() {
       <button className="btn btn-secondary btn-block" onClick={() => setShowAddHabit(true)}>
         + Add Habit
       </button>
+
+      <div className="section-title">Goals</div>
+      {openGoals.length === 0 ? (
+        <div className="card empty-state">
+          <div className="glyph">
+            <Icon name="flag" size={34} strokeWidth={1.4} />
+          </div>
+          <div>Set a bigger goal to work toward — a race, a project, a milestone.</div>
+        </div>
+      ) : (
+        openGoals.map((g) => <GoalCard key={g.id} goal={g} />)
+      )}
+      <button className="btn btn-secondary btn-block" onClick={() => setShowAddGoal(true)}>
+        + Add Goal
+      </button>
+      {completedGoals.length > 0 && (
+        <>
+          <div className="section-title">Completed Goals</div>
+          {completedGoals.map((g) => (
+            <GoalCard key={g.id} goal={g} />
+          ))}
+        </>
+      )}
 
       <div className="section-title">To-dos</div>
       <div className="card">
@@ -396,6 +562,7 @@ export default function HabitsTab() {
       )}
 
       {showAddHabit && <AddHabitSheet onClose={() => setShowAddHabit(false)} onAdd={addHabit} />}
+      {showAddGoal && <AddGoalSheet onClose={() => setShowAddGoal(false)} onAdd={addGoal} />}
       {showAddSkill && <AddSkillSheet onClose={() => setShowAddSkill(false)} onAdd={addSkill} />}
     </div>
   )

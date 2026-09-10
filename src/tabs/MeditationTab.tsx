@@ -17,6 +17,7 @@ export default function MeditationTab() {
   const [soundscape, setSoundscape] = useState<SoundscapeKind>('rain')
   const [running, setRunning] = useState(false)
   const [remaining, setRemaining] = useState(duration * 60)
+  const [breathPhase, setBreathPhase] = useState<'in' | 'out'>('in')
   const playerRef = useRef<SoundscapePlayer | null>(null)
   const intervalRef = useRef<number | null>(null)
 
@@ -34,7 +35,7 @@ export default function MeditationTab() {
 
   useEffect(() => {
     if (running && playerRef.current) {
-      playerRef.current.play(soundscape)
+      playerRef.current.play(soundscape, setBreathPhase)
     }
   }, [soundscape, running])
 
@@ -49,7 +50,8 @@ export default function MeditationTab() {
   function start() {
     setRemaining(duration * 60)
     setRunning(true)
-    playerRef.current?.play(soundscape)
+    setBreathPhase('in')
+    playerRef.current?.play(soundscape, setBreathPhase)
     intervalRef.current = window.setInterval(() => {
       setRemaining((r) => {
         if (r <= 1) {
@@ -97,7 +99,15 @@ export default function MeditationTab() {
           </svg>
           <div className="center">
             <div className="time">{formatTime(remaining)}</div>
-            <div className="sub">{running ? 'breathe…' : `${duration} min session`}</div>
+            <div className="sub">
+              {running
+                ? soundscape === 'breathing'
+                  ? breathPhase === 'in'
+                    ? 'Breathe in…'
+                    : 'Breathe out…'
+                  : 'breathe…'
+                : `${duration} min session`}
+            </div>
           </div>
         </div>
 
