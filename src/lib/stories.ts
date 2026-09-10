@@ -1,7 +1,10 @@
-// Detective short stories, sourced live from Project Gutenberg (public-domain
-// books only) via the Gutendex search API, with a couple of fixed Gutenberg
-// IDs as a fallback if Gutendex itself is unreachable. Everything here reads
-// real text fetched over the network — nothing is hardcoded fiction.
+// Classic detective and crime-solving short stories, sourced live from
+// Project Gutenberg (public-domain books only) via the Gutendex search API —
+// Holmes and Poirot among several other authors, plus a genre-wide query so
+// the feature isn't dependent on any single author's search — with a few
+// fixed Gutenberg IDs as a fallback if Gutendex itself is unreachable.
+// Everything here reads real text fetched over the network — nothing is
+// hardcoded fiction.
 
 import { fetchTextWithProxy } from './feeds'
 
@@ -17,17 +20,39 @@ interface GutendexBook {
   id: number
   title: string
   authors?: { name: string }[]
+  subjects?: string[]
+  bookshelves?: string[]
   formats: Record<string, string>
 }
 
 const GUTENDEX_SEARCH = 'https://gutendex.com/books/?search='
 const MAX_STORY_TEXT_LENGTH = 200_000
-const MAX_NEW_STORIES_PER_REFRESH = 6
+const MAX_NEW_STORIES_PER_REFRESH = 8
 const MIN_STORY_LENGTH = 1800
 
-const AUTHOR_QUERIES: { query: string; titleMatch: RegExp; authorLabel: string }[] = [
+interface StoryQuery {
+  query: string
+  // A book matches if its title matches titleMatch, OR (when subjectMatch is
+  // given instead) if any of its Gutendex subjects/bookshelves do — this
+  // makes the last, genre-wide query independent of any one author's exact
+  // titles, so the feature isn't reliant on any single query pattern.
+  titleMatch?: RegExp
+  subjectMatch?: RegExp
+  authorLabel: string
+}
+
+// A spread of classic, unambiguously public-domain crime/detective authors —
+// not just Holmes and Poirot — plus one genre-wide query, so a poll has many
+// independent paths to a result instead of depending on two narrow searches.
+const QUERIES: StoryQuery[] = [
   { query: 'Arthur Conan Doyle', titleMatch: /sherlock|holmes/i, authorLabel: 'Arthur Conan Doyle' },
-  { query: 'Agatha Christie', titleMatch: /poirot|styles/i, authorLabel: 'Agatha Christie' },
+  { query: 'Agatha Christie', titleMatch: /poirot|styles|links/i, authorLabel: 'Agatha Christie' },
+  { query: 'Edgar Allan Poe', titleMatch: /rue morgue|purloined letter|marie roget|mystery|detective/i, authorLabel: 'Edgar Allan Poe' },
+  { query: 'G. K. Chesterton Father Brown', titleMatch: /father brown/i, authorLabel: 'G. K. Chesterton' },
+  { query: 'R. Austin Freeman Thorndyke', titleMatch: /thorndyke/i, authorLabel: 'R. Austin Freeman' },
+  { query: 'Jacques Futrelle Thinking Machine', titleMatch: /thinking machine/i, authorLabel: 'Jacques Futrelle' },
+  { query: 'Baroness Orczy Old Man in the Corner', titleMatch: /old man in the corner/i, authorLabel: 'Baroness Orczy' },
+  { query: 'detective mystery stories', subjectMatch: /detective|mystery|crime/i, authorLabel: 'Classic Detective Fiction' },
 ]
 
 // Fixed, well-known public-domain Gutenberg IDs used only if the Gutendex
@@ -36,7 +61,14 @@ const FALLBACK_BOOKS = [
   { id: 1661, title: 'The Adventures of Sherlock Holmes', author: 'Arthur Conan Doyle' },
   { id: 834, title: 'The Memoirs of Sherlock Holmes', author: 'Arthur Conan Doyle' },
   { id: 863, title: 'The Mysterious Affair at Styles', author: 'Agatha Christie' },
+  { id: 1289, title: 'The Innocence of Father Brown', author: 'G. K. Chesterton' },
 ]
+
+function bookMatchesQuery(b: GutendexBook, q: StoryQuery): boolean {
+  if (q.titleMatch) return q.titleMatch.test(b.title)
+  if (q.subjectMatch) return [...(b.subjects ?? []), ...(b.bookshelves ?? [])].some((s) => q.subjectMatch!.test(s))
+  return true
+}
 
 async function searchGutendex(query: string): Promise<GutendexBook[]> {
   const text = await fetchTextWithProxy(GUTENDEX_SEARCH + encodeURIComponent(query), 'application/json')
@@ -150,19 +182,16 @@ async function storiesFromBook(book: { title: string; author: string; url: strin
   }))
 }
 
-async function storiesForQuery(
-  { query, titleMatch, authorLabel }: (typeof AUTHOR_QUERIES)[number],
-  existingSources: Set<string>
-): Promise<NewStory[]> {
-  const results = await searchGutendex(query)
-  const candidates = results.filter((b) => titleMatch.test(b.title) && pickPlainTextUrl(b.formats))
+async function storiesForQuery(q: StoryQuery, existingSources: Set<string>): Promise<NewStory[]> {
+  const results = await searchGutendex(q.query)
+  const candidates = results.filter((b) => bookMatchesQuery(b, q) && pickPlainTextUrl(b.formats))
   if (candidates.length === 0) throw new Error('No matching Gutenberg books found')
 
   const fresh = candidates.find((b) => !existingSources.has(`${b.title} — project gutenberg`.toLowerCase()))
   const picked = fresh ?? candidates[Math.floor(Math.random() * candidates.length)]
   const textUrl = pickPlainTextUrl(picked.formats)!
   const raw = await fetchTextWithProxy(textUrl, 'text/plain')
-  return storiesFromBook({ title: picked.title, author: picked.authors?.[0]?.name ?? authorLabel, url: textUrl }, raw)
+  return storiesFromBook({ title: picked.title, author: picked.authors?.[0]?.name ?? q.authorLabel, url: textUrl }, raw)
 }
 
 async function storiesForFallbackBook(fb: (typeof FALLBACK_BOOKS)[number]): Promise<NewStory[]> {
@@ -184,10 +213,10 @@ export async function refreshStories(existingSources: Set<string>): Promise<{ it
   const items: NewStory[] = []
   const errors: string[] = []
 
-  const queryResults = await Promise.allSettled(AUTHOR_QUERIES.map((q) => storiesForQuery(q, existingSources)))
+  const queryResults = await Promise.allSettled(QUERIES.map((q) => storiesForQuery(q, existingSources)))
   queryResults.forEach((r, i) => {
     if (r.status === 'fulfilled') items.push(...r.value)
-    else errors.push(AUTHOR_QUERIES[i].authorLabel)
+    else errors.push(QUERIES[i].authorLabel)
   })
 
   if (items.length === 0) {
