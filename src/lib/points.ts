@@ -65,10 +65,23 @@ export function totalPointsFor(checkIns: CheckIn[]): number {
   return checkIns.reduce((sum, c) => sum + c.points, 0)
 }
 
-export function totalPoints(habits: Habit[], skills: Skill[]): number {
-  const h = habits.reduce((sum, habit) => sum + totalPointsFor(habit.checkIns), 0)
-  const s = skills.reduce((sum, skill) => sum + totalPointsFor(skill.checkIns), 0)
-  return h + s
+interface PointBearing {
+  points: number
+}
+
+export function totalPoints(state: {
+  habits: Habit[]
+  skills: Skill[]
+  activityLogs: PointBearing[]
+  sleepLogs: PointBearing[]
+  mealLogs: PointBearing[]
+}): number {
+  const h = state.habits.reduce((sum, habit) => sum + totalPointsFor(habit.checkIns), 0)
+  const s = state.skills.reduce((sum, skill) => sum + totalPointsFor(skill.checkIns), 0)
+  const a = state.activityLogs.reduce((sum, l) => sum + l.points, 0)
+  const sl = state.sleepLogs.reduce((sum, l) => sum + l.points, 0)
+  const m = state.mealLogs.reduce((sum, l) => sum + l.points, 0)
+  return h + s + a + sl + m
 }
 
 export function levelForPoints(points: number): number {

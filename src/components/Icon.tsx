@@ -54,6 +54,10 @@ export type IconName =
   | 'flag'
   | 'anchor'
   | 'chess'
+  | 'bike'
+  | 'bed'
+  | 'utensils'
+  | 'barChart'
 
 const paths: Record<IconName, ReactNode> = {
   checkSquare: (
@@ -373,6 +377,38 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M7.5 15h9l-1-3h-7z" />
       <path d="M8.5 12V7h7v5" />
       <path d="M7.5 7h9M8.5 4.5h6M9.5 4.5V3M12 4.5V3M14.5 4.5V3" />
+    </>
+  ),
+  bike: (
+    <>
+      <circle cx="6" cy="17" r="3.3" />
+      <circle cx="18" cy="17" r="3.3" />
+      <path d="M6 17l4-8h4l3 8" />
+      <path d="M10 9h3" />
+      <path d="M13 9l2.5 3.5" />
+    </>
+  ),
+  bed: (
+    <>
+      <path d="M2.5 19v-6.5a2 2 0 0 1 2-2h15a2 2 0 0 1 2 2V19" />
+      <path d="M2.5 19v2M21.5 19v2" />
+      <path d="M2.5 14.5h19" />
+      <path d="M6 12.5v-2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </>
+  ),
+  utensils: (
+    <>
+      <path d="M6.5 2v6.5a2 2 0 0 0 2 2V21" />
+      <path d="M6.5 2v6.5M9.5 2v6.5" />
+      <path d="M16.5 2c-2 2.5-2 6-.3 8.2C16.8 11 17 12 17 13v8" />
+    </>
+  ),
+  barChart: (
+    <>
+      <line x1="4" y1="20" x2="4" y2="12" />
+      <line x1="10.5" y1="20" x2="10.5" y2="5" />
+      <line x1="17" y1="20" x2="17" y2="14" />
+      <line x1="3" y1="20" x2="21" y2="20" />
     </>
   ),
 }

@@ -69,7 +69,67 @@ export interface VocabWord {
   learned: boolean
 }
 
-export type GameKind = 'nback' | 'memory' | 'math' | 'splitfocus' | 'vocab' | 'chess'
+export interface ActivityType {
+  id: string
+  name: string
+  icon: string
+  pointsPerCompletion: number
+  createdAt: string
+  archived: boolean
+}
+
+export interface ActivityLog {
+  id: string
+  activityTypeId: string
+  date: string
+  durationMinutes: number
+  calories: number
+  distanceKm: number | null
+  notes: string
+  points: number
+  loggedAt: string
+}
+
+export interface SleepLog {
+  id: string
+  date: string
+  quality: number
+  hours: number | null
+  points: number
+}
+
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+
+export interface MealLog {
+  id: string
+  date: string
+  mealType: MealType
+  description: string
+  quality: number
+  calories: number | null
+  points: number
+}
+
+export interface SpanishCard {
+  id: string
+  spanish: string
+  english: string
+  pronunciation: string
+  category: string
+  addedAt: string
+  learned: boolean
+}
+
+export interface CodingSolved {
+  id: string
+  problemId: string
+  difficulty: 'easy' | 'medium' | 'hard'
+  language: string
+  solvedAt: string
+  points: number
+}
+
+export type GameKind = 'nback' | 'memory' | 'math' | 'splitfocus' | 'vocab' | 'chess' | 'spanish' | 'coding'
 
 export interface GameScore {
   id: string
@@ -96,7 +156,24 @@ export interface AppState {
   meditationSessions: MeditationSession[]
   gameScores: GameScore[]
   vocabWords: VocabWord[]
+  activityTypes: ActivityType[]
+  activityLogs: ActivityLog[]
+  sleepLogs: SleepLog[]
+  mealLogs: MealLog[]
+  spanishCards: SpanishCard[]
+  codingSolved: CodingSolved[]
 }
+
+export const SLEEP_BONUS_THRESHOLD = 90
+export const SLEEP_BONUS_POINTS = 25
+export const MEAL_LOG_POINTS = 5
+
+export const DEFAULT_ACTIVITY_TYPES: ActivityType[] = [
+  { id: 'act_run', name: 'Running', icon: 'activity', pointsPerCompletion: 20, createdAt: new Date(0).toISOString(), archived: false },
+  { id: 'act_tennis', name: 'Tennis', icon: 'target', pointsPerCompletion: 20, createdAt: new Date(0).toISOString(), archived: false },
+  { id: 'act_lifting', name: 'Lifting', icon: 'dumbbell', pointsPerCompletion: 20, createdAt: new Date(0).toISOString(), archived: false },
+  { id: 'act_biking', name: 'Biking', icon: 'bike', pointsPerCompletion: 20, createdAt: new Date(0).toISOString(), archived: false },
+]
 
 export const DEFAULT_LEVELS: LevelDef[] = [
   { level: 1, name: 'Seedling' },
@@ -123,5 +200,11 @@ export function emptyState(): AppState {
     meditationSessions: [],
     gameScores: [],
     vocabWords: [],
+    activityTypes: DEFAULT_ACTIVITY_TYPES,
+    activityLogs: [],
+    sleepLogs: [],
+    mealLogs: [],
+    spanishCards: [],
+    codingSolved: [],
   }
 }

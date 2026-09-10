@@ -1,16 +1,23 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ActivityType,
   AppState,
+  CodingSolved,
   GameKind,
   GithubSyncConfig,
   Habit,
   LevelDef,
+  MealType,
   MeditationSession,
   ReadingItem,
   Skill,
+  SpanishCard,
   Todo,
   VocabWord,
   emptyState,
+  SLEEP_BONUS_POINTS,
+  SLEEP_BONUS_THRESHOLD,
+  MEAL_LOG_POINTS,
 } from '../types'
 import { makeId } from '../lib/id'
 import { hasCheckedInToday, todayKey, totalPoints, levelInfo } from '../lib/points'
@@ -53,6 +60,23 @@ interface Ctx {
   addVocabWords: (items: Omit<VocabWord, 'id' | 'addedAt'>[]) => void
   markVocabWord: (id: string, learned: boolean) => void
   removeVocabWord: (id: string) => void
+
+  addActivityType: (name: string, icon: string, pointsPerCompletion: number) => void
+  archiveActivityType: (id: string) => void
+  logActivity: (activityTypeId: string, durationMinutes: number, calories: number, distanceKm: number | null, notes: string) => void
+  deleteActivityLog: (id: string) => void
+
+  logSleep: (quality: number, hours: number | null) => void
+  deleteSleepLog: (id: string) => void
+
+  logMeal: (mealType: MealType, description: string, quality: number, calories: number | null) => void
+  deleteMealLog: (id: string) => void
+
+  addSpanishCards: (items: Omit<SpanishCard, 'id' | 'addedAt'>[]) => void
+  markSpanishCard: (id: string, learned: boolean) => void
+  removeSpanishCard: (id: string) => void
+
+  logCodingSolved: (problemId: string, difficulty: 'easy' | 'medium' | 'hard', language: string, points: number) => void
 
   syncConfig: GithubSyncConfig | null
   setSyncConfig: (cfg: GithubSyncConfig | null) => void
@@ -240,6 +264,86 @@ export function AppDataProvider({
     setState((s) => ({ ...s, vocabWords: s.vocabWords.filter((v) => v.id !== id) }))
   }, [])
 
+  const addActivityType = useCallback((name: string, icon: string, pointsPerCompletion: number) => {
+    const activity: ActivityType = { id: makeId(), name, icon, pointsPerCompletion, createdAt: new Date().toISOString(), archived: false }
+    setState((s) => ({ ...s, activityTypes: [...s.activityTypes, activity] }))
+  }, [])
+
+  const archiveActivityType = useCallback((id: string) => {
+    setState((s) => ({ ...s, activityTypes: s.activityTypes.map((a) => (a.id === id ? { ...a, archived: !a.archived } : a)) }))
+  }, [])
+
+  const logActivity = useCallback(
+    (activityTypeId: string, durationMinutes: number, calories: number, distanceKm: number | null, notes: string) => {
+      setState((s) => {
+        const type = s.activityTypes.find((a) => a.id === activityTypeId)
+        if (!type) return s
+        const log = {
+          id: makeId(),
+          activityTypeId,
+          date: todayKey(),
+          durationMinutes,
+          calories,
+          distanceKm,
+          notes,
+          points: type.pointsPerCompletion,
+          loggedAt: new Date().toISOString(),
+        }
+        return { ...s, activityLogs: [log, ...s.activityLogs] }
+      })
+    },
+    []
+  )
+
+  const deleteActivityLog = useCallback((id: string) => {
+    setState((s) => ({ ...s, activityLogs: s.activityLogs.filter((a) => a.id !== id) }))
+  }, [])
+
+  const logSleep = useCallback((quality: number, hours: number | null) => {
+    const points = quality >= SLEEP_BONUS_THRESHOLD ? SLEEP_BONUS_POINTS : 0
+    const log = { id: makeId(), date: todayKey(), quality, hours, points }
+    setState((s) => ({ ...s, sleepLogs: [log, ...s.sleepLogs] }))
+  }, [])
+
+  const deleteSleepLog = useCallback((id: string) => {
+    setState((s) => ({ ...s, sleepLogs: s.sleepLogs.filter((l) => l.id !== id) }))
+  }, [])
+
+  const logMeal = useCallback((mealType: MealType, description: string, quality: number, calories: number | null) => {
+    const log = { id: makeId(), date: todayKey(), mealType, description, quality, calories, points: MEAL_LOG_POINTS }
+    setState((s) => ({ ...s, mealLogs: [log, ...s.mealLogs] }))
+  }, [])
+
+  const deleteMealLog = useCallback((id: string) => {
+    setState((s) => ({ ...s, mealLogs: s.mealLogs.filter((l) => l.id !== id) }))
+  }, [])
+
+  const addSpanishCards = useCallback((items: Omit<SpanishCard, 'id' | 'addedAt'>[]) => {
+    setState((s) => {
+      const existing = new Set(s.spanishCards.map((c) => c.spanish.toLowerCase()))
+      const fresh = items
+        .filter((it) => !existing.has(it.spanish.toLowerCase()))
+        .map((it) => ({ ...it, id: makeId(), addedAt: new Date().toISOString() }))
+      return { ...s, spanishCards: [...fresh, ...s.spanishCards] }
+    })
+  }, [])
+
+  const markSpanishCard = useCallback((id: string, learned: boolean) => {
+    setState((s) => ({ ...s, spanishCards: s.spanishCards.map((c) => (c.id === id ? { ...c, learned } : c)) }))
+  }, [])
+
+  const removeSpanishCard = useCallback((id: string) => {
+    setState((s) => ({ ...s, spanishCards: s.spanishCards.filter((c) => c.id !== id) }))
+  }, [])
+
+  const logCodingSolved = useCallback((problemId: string, difficulty: 'easy' | 'medium' | 'hard', language: string, points: number) => {
+    setState((s) => {
+      if (s.codingSolved.some((c) => c.problemId === problemId)) return s
+      const entry: CodingSolved = { id: makeId(), problemId, difficulty, language, solvedAt: new Date().toISOString(), points }
+      return { ...s, codingSolved: [entry, ...s.codingSolved] }
+    })
+  }, [])
+
   const pushToGithub = useCallback(async () => {
     if (!syncConfig) throw new Error('Connect a GitHub repository first.')
     const csv = stateToCsv(state)
@@ -263,7 +367,10 @@ export function AppDataProvider({
     setState(emptyState())
   }, [])
 
-  const points = useMemo(() => totalPoints(state.habits, state.skills), [state.habits, state.skills])
+  const points = useMemo(
+    () => totalPoints(state),
+    [state.habits, state.skills, state.activityLogs, state.sleepLogs, state.mealLogs]
+  )
   const level = useMemo(() => levelInfo(points, state.levels), [points, state.levels])
 
   const value: Ctx = {
@@ -293,6 +400,18 @@ export function AppDataProvider({
     addVocabWords,
     markVocabWord,
     removeVocabWord,
+    addActivityType,
+    archiveActivityType,
+    logActivity,
+    deleteActivityLog,
+    logSleep,
+    deleteSleepLog,
+    logMeal,
+    deleteMealLog,
+    addSpanishCards,
+    markSpanishCard,
+    removeSpanishCard,
+    logCodingSolved,
     syncConfig,
     setSyncConfig,
     pushToGithub,

@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useAppData } from '../context/AppDataContext'
-import { hasCheckedInToday, currentStreak } from '../lib/points'
-import { Habit } from '../types'
+import { hasCheckedInToday, currentStreak, skillProgress, SKILL_MASTERY_DAYS } from '../lib/points'
+import { Habit, Skill } from '../types'
 import Icon, { IconName } from '../components/Icon'
 
-const ICONS: IconName[] = [
+const HABIT_ICONS: IconName[] = [
   'droplet',
   'activity',
   'sun',
@@ -31,9 +31,36 @@ const ICONS: IconName[] = [
   'sprout',
 ]
 
+const SKILL_ICONS: IconName[] = [
+  'keys',
+  'brush',
+  'code',
+  'message',
+  'chefHat',
+  'ruler',
+  'crown',
+  'mic',
+  'pencil',
+  'camera',
+  'sprout',
+  'mountain',
+  'globe',
+  'target',
+  'anchor',
+  'flag',
+  'shield',
+  'network',
+  'layoutGrid',
+  'cards',
+  'bookOpen',
+  'star',
+  'letters',
+  'compass',
+]
+
 function AddHabitSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: string, icon: string, pts: number) => void }) {
   const [name, setName] = useState('')
-  const [icon, setIcon] = useState<IconName>(ICONS[0])
+  const [icon, setIcon] = useState<IconName>(HABIT_ICONS[0])
   const [points, setPoints] = useState(10)
 
   return (
@@ -47,7 +74,7 @@ function AddHabitSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: 
         <div className="field">
           <label className="field-label">Icon</label>
           <div className="emoji-picker">
-            {ICONS.map((i) => (
+            {HABIT_ICONS.map((i) => (
               <button key={i} className={icon === i ? 'active' : ''} onClick={() => setIcon(i)} type="button">
                 <Icon name={i} size={18} />
               </button>
@@ -77,6 +104,60 @@ function AddHabitSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: 
           }}
         >
           Add habit
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function AddSkillSheet({ onClose, onAdd }: { onClose: () => void; onAdd: (name: string, icon: string, pts: number) => void }) {
+  const [name, setName] = useState('')
+  const [icon, setIcon] = useState<IconName>(SKILL_ICONS[0])
+  const [points, setPoints] = useState(15)
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
+        <h2>New Skill to Master</h2>
+        <div className="field">
+          <label className="field-label">Skill name</label>
+          <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Learn Spanish" />
+        </div>
+        <div className="field">
+          <label className="field-label">Icon</label>
+          <div className="emoji-picker">
+            {SKILL_ICONS.map((i) => (
+              <button key={i} className={icon === i ? 'active' : ''} onClick={() => setIcon(i)} type="button">
+                <Icon name={i} size={18} />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          <label className="field-label">Points per check-in: {points}</label>
+          <input
+            type="range"
+            min={5}
+            max={100}
+            step={5}
+            value={points}
+            onChange={(e) => setPoints(Number(e.target.value))}
+            style={{ width: '100%' }}
+          />
+        </div>
+        <div className="hint" style={{ marginBottom: 14 }}>
+          Check in daily for {SKILL_MASTERY_DAYS} consecutive days to master this skill.
+        </div>
+        <button
+          className="btn btn-primary btn-block"
+          disabled={!name.trim()}
+          onClick={() => {
+            if (!name.trim()) return
+            onAdd(name.trim(), icon, points)
+            onClose()
+          }}
+        >
+          Start skill
         </button>
       </div>
     </div>
@@ -141,14 +222,59 @@ function HabitCard({ habit }: { habit: Habit }) {
   )
 }
 
+function SkillCard({ skill }: { skill: Skill }) {
+  const { checkInSkill, archiveSkill, deleteSkill } = useAppData()
+  const done = hasCheckedInToday(skill.checkIns)
+  const { streak, percent, mastered } = skillProgress(skill)
+
+  return (
+    <div className="card skill-card">
+      <div className="habit-top">
+        <div className="habit-emoji">
+          <Icon name={(skill.icon as IconName) || 'target'} size={22} />
+        </div>
+        <div className="habit-info">
+          <h3>{skill.name}</h3>
+          <div className="meta">
+            {streak}/{SKILL_MASTERY_DAYS} days · {skill.pointsPerCheckIn} pts/day
+          </div>
+        </div>
+        {mastered ? (
+          <span className="skill-badge mastered">Mastered</span>
+        ) : (
+          <button className={`check-btn ${done ? 'done' : ''}`} onClick={() => checkInSkill(skill.id)} disabled={done}>
+            {done && <Icon name="check" size={18} strokeWidth={2.4} />}
+          </button>
+        )}
+      </div>
+      <div className="progress-track">
+        <div className="progress-fill" style={{ width: `${percent}%` }} />
+      </div>
+      <div className="row" style={{ justifyContent: 'flex-end' }}>
+        <button className="icon-btn" onClick={() => archiveSkill(skill.id)}>
+          {skill.archived ? 'Unarchive' : 'Archive'}
+        </button>
+        <button className="icon-btn" onClick={() => deleteSkill(skill.id)}>
+          Delete
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function HabitsTab() {
-  const { state, addHabit, addTodo, toggleTodo, deleteTodo } = useAppData()
-  const [showAdd, setShowAdd] = useState(false)
+  const { state, addHabit, addSkill, addTodo, toggleTodo, deleteTodo } = useAppData()
+  const [showAddHabit, setShowAddHabit] = useState(false)
+  const [showAddSkill, setShowAddSkill] = useState(false)
   const [todoText, setTodoText] = useState('')
 
   const activeHabits = state.habits.filter((h) => !h.archived)
   const pendingTodos = state.todos.filter((t) => !t.done)
   const doneTodos = state.todos.filter((t) => t.done)
+
+  const activeSkills = state.skills.filter((s) => !s.archived)
+  const masteredSkills = activeSkills.filter((s) => skillProgress(s).mastered)
+  const inProgressSkills = activeSkills.filter((s) => !skillProgress(s).mastered)
 
   return (
     <div>
@@ -163,7 +289,7 @@ export default function HabitsTab() {
       ) : (
         activeHabits.map((h) => <HabitCard key={h.id} habit={h} />)
       )}
-      <button className="btn btn-secondary btn-block" onClick={() => setShowAdd(true)}>
+      <button className="btn btn-secondary btn-block" onClick={() => setShowAddHabit(true)}>
         + Add Habit
       </button>
 
@@ -221,7 +347,32 @@ export default function HabitsTab() {
         )}
       </div>
 
-      {showAdd && <AddHabitSheet onClose={() => setShowAdd(false)} onAdd={addHabit} />}
+      <div className="section-title">Skills to Master</div>
+      {inProgressSkills.length === 0 ? (
+        <div className="card empty-state">
+          <div className="glyph">
+            <Icon name="sprout" size={34} strokeWidth={1.4} />
+          </div>
+          <div>Pick a skill you want to master and check in daily for 20 days straight.</div>
+        </div>
+      ) : (
+        inProgressSkills.map((s) => <SkillCard key={s.id} skill={s} />)
+      )}
+      <button className="btn btn-secondary btn-block" onClick={() => setShowAddSkill(true)}>
+        + Add Skill
+      </button>
+
+      {masteredSkills.length > 0 && (
+        <>
+          <div className="section-title">Mastered</div>
+          {masteredSkills.map((s) => (
+            <SkillCard key={s.id} skill={s} />
+          ))}
+        </>
+      )}
+
+      {showAddHabit && <AddHabitSheet onClose={() => setShowAddHabit(false)} onAdd={addHabit} />}
+      {showAddSkill && <AddSkillSheet onClose={() => setShowAddSkill(false)} onAdd={addSkill} />}
     </div>
   )
 }

@@ -1,4 +1,17 @@
-import { AppState, CheckIn, GameScore, Habit, LevelDef, MeditationSession, ReadingItem, Skill, Todo, VocabWord, emptyState } from '../types'
+import {
+  AppState,
+  CheckIn,
+  GameScore,
+  Habit,
+  LevelDef,
+  MealType,
+  MeditationSession,
+  ReadingItem,
+  Skill,
+  Todo,
+  VocabWord,
+  emptyState,
+} from '../types'
 
 // A small multi-table CSV format: sections are separated by a `#SECTION,<name>`
 // marker row followed by a header row, then data rows. This keeps the file a
@@ -57,6 +70,22 @@ export function stateToCsv(state: AppState): string {
     v.addedAt,
     v.learned,
   ])
+  const activityTypeRows = state.activityTypes.map((a) => [a.id, a.name, a.icon, a.pointsPerCompletion, a.createdAt, a.archived])
+  const activityLogRows = state.activityLogs.map((a) => [
+    a.id,
+    a.activityTypeId,
+    a.date,
+    a.durationMinutes,
+    a.calories,
+    a.distanceKm ?? '',
+    a.notes,
+    a.points,
+    a.loggedAt,
+  ])
+  const sleepRows = state.sleepLogs.map((s) => [s.id, s.date, s.quality, s.hours ?? '', s.points])
+  const mealRows = state.mealLogs.map((m) => [m.id, m.date, m.mealType, m.description, m.quality, m.calories ?? '', m.points])
+  const spanishRows = state.spanishCards.map((c) => [c.id, c.spanish, c.english, c.pronunciation, c.category, c.addedAt, c.learned])
+  const codingRows = state.codingSolved.map((c) => [c.id, c.problemId, c.difficulty, c.language, c.solvedAt, c.points])
 
   return [
     section('HABITS', ['id', 'name', 'icon', 'pointsPerCheckIn', 'createdAt', 'archived'], habitRows),
@@ -72,6 +101,16 @@ export function stateToCsv(state: AppState): string {
       ['id', 'word', 'partOfSpeech', 'phonetic', 'definition', 'example', 'audioUrl', 'source', 'addedAt', 'learned'],
       vocabRows
     ),
+    section('ACTIVITYTYPES', ['id', 'name', 'icon', 'pointsPerCompletion', 'createdAt', 'archived'], activityTypeRows),
+    section(
+      'ACTIVITYLOGS',
+      ['id', 'activityTypeId', 'date', 'durationMinutes', 'calories', 'distanceKm', 'notes', 'points', 'loggedAt'],
+      activityLogRows
+    ),
+    section('SLEEPLOGS', ['id', 'date', 'quality', 'hours', 'points'], sleepRows),
+    section('MEALLOGS', ['id', 'date', 'mealType', 'description', 'quality', 'calories', 'points'], mealRows),
+    section('SPANISH', ['id', 'spanish', 'english', 'pronunciation', 'category', 'addedAt', 'learned'], spanishRows),
+    section('CODINGSOLVED', ['id', 'problemId', 'difficulty', 'language', 'solvedAt', 'points'], codingRows),
   ].join('\n\n')
 }
 
@@ -152,6 +191,12 @@ export function csvToState(csv: string): AppState {
   state.meditationSessions = []
   state.gameScores = []
   state.vocabWords = []
+  state.activityTypes = []
+  state.activityLogs = []
+  state.sleepLogs = []
+  state.mealLogs = []
+  state.spanishCards = []
+  state.codingSolved = []
 
   const rows = parseCsv(csv)
   const habitCheckIns = new Map<string, CheckIn[]>()
@@ -249,6 +294,61 @@ export function csvToState(csv: string): AppState {
         })
         break
       }
+      case 'ACTIVITYTYPES': {
+        const [id, name, icon, pointsPerCompletion, createdAt, archived] = r
+        state.activityTypes.push({ id, name, icon, pointsPerCompletion: num(pointsPerCompletion), createdAt, archived: bool(archived) })
+        break
+      }
+      case 'ACTIVITYLOGS': {
+        const [id, activityTypeId, date, durationMinutes, calories, distanceKm, notes, points, loggedAt] = r
+        state.activityLogs.push({
+          id,
+          activityTypeId,
+          date,
+          durationMinutes: num(durationMinutes),
+          calories: num(calories),
+          distanceKm: distanceKm === '' ? null : Number(distanceKm),
+          notes,
+          points: num(points),
+          loggedAt,
+        })
+        break
+      }
+      case 'SLEEPLOGS': {
+        const [id, date, quality, hours, points] = r
+        state.sleepLogs.push({ id, date, quality: num(quality), hours: hours === '' ? null : Number(hours), points: num(points) })
+        break
+      }
+      case 'MEALLOGS': {
+        const [id, date, mealType, description, quality, calories, points] = r
+        state.mealLogs.push({
+          id,
+          date,
+          mealType: mealType as MealType,
+          description,
+          quality: num(quality),
+          calories: calories === '' ? null : Number(calories),
+          points: num(points),
+        })
+        break
+      }
+      case 'SPANISH': {
+        const [id, spanish, english, pronunciation, category, addedAt, learned] = r
+        state.spanishCards.push({ id, spanish, english, pronunciation, category, addedAt, learned: bool(learned) })
+        break
+      }
+      case 'CODINGSOLVED': {
+        const [id, problemId, difficulty, language, solvedAt, points] = r
+        state.codingSolved.push({
+          id,
+          problemId,
+          difficulty: difficulty as 'easy' | 'medium' | 'hard',
+          language,
+          solvedAt,
+          points: num(points),
+        })
+        break
+      }
       default:
         break
     }
@@ -257,6 +357,7 @@ export function csvToState(csv: string): AppState {
   for (const h of state.habits) h.checkIns = habitCheckIns.get(h.id) ?? []
   for (const s of state.skills) s.checkIns = skillCheckIns.get(s.id) ?? []
   if (state.levels.length === 0) state.levels = emptyState().levels
+  if (state.activityTypes.length === 0) state.activityTypes = emptyState().activityTypes
 
   return state
 }

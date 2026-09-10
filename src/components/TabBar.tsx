@@ -1,10 +1,10 @@
 import Icon, { IconName } from './Icon'
 
-export type TabKey = 'habits' | 'skills' | 'games' | 'meditate' | 'reading' | 'profile'
+export type TabKey = 'habits' | 'fitness' | 'games' | 'meditate' | 'reading' | 'profile'
 
 const TABS: { key: TabKey; label: string; icon: IconName }[] = [
   { key: 'habits', label: 'Habits', icon: 'checkSquare' },
-  { key: 'skills', label: 'Skills', icon: 'target' },
+  { key: 'fitness', label: 'Fitness', icon: 'dumbbell' },
   { key: 'games', label: 'Games', icon: 'network' },
   { key: 'meditate', label: 'Meditate', icon: 'sun' },
   { key: 'reading', label: 'Reading', icon: 'bookOpen' },

@@ -400,6 +400,7 @@ select {
   height: 44px;
   display: grid;
   place-items: center;
+  color: var(--primary-dark);
   background: var(--primary-light);
   border-radius: 14px;
   flex-shrink: 0;

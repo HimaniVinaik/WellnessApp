@@ -1,8 +1,8 @@
 import { useAppData } from '../context/AppDataContext'
 
 const TITLES: Record<string, string> = {
-  habits: 'Habits & To-dos',
-  skills: 'Skill Mastery',
+  habits: 'Habits & Skills',
+  fitness: 'Fitness',
   games: 'Brain Training',
   meditate: 'Meditation',
   reading: 'Reading Room',

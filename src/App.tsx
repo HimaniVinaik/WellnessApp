@@ -8,7 +8,7 @@ import { AppState } from './types'
 import TabBar, { TabKey } from './components/TabBar'
 import Header from './components/Header'
 import HabitsTab from './tabs/HabitsTab'
-import SkillsTab from './tabs/SkillsTab'
+import FitnessTab from './tabs/FitnessTab'
 import GamesTab from './tabs/GamesTab'
 import MeditationTab from './tabs/MeditationTab'
 import ReadingTab from './tabs/ReadingTab'
@@ -18,8 +18,8 @@ function TabContent({ tab }: { tab: TabKey }) {
   switch (tab) {
     case 'habits':
       return <HabitsTab />
-    case 'skills':
-      return <SkillsTab />
+    case 'fitness':
+      return <FitnessTab />
     case 'games':
       return <GamesTab />
     case 'meditate':
