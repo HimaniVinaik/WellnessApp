@@ -7,6 +7,7 @@
 // hardcoded fiction.
 
 import { fetchTextWithProxy } from './feeds'
+import { fetchWikisourceStories } from './wikisource'
 
 export interface NewStory {
   title: string
@@ -199,34 +200,59 @@ async function storiesForFallbackBook(fb: (typeof FALLBACK_BOOKS)[number]): Prom
   return storiesFromBook({ title: fb.title, author: fb.author, url: `https://www.gutenberg.org/ebooks/${fb.id}` }, raw)
 }
 
-/** Fetches a fresh batch of public-domain detective stories from Project
- * Gutenberg. `existingSources` should be the lowercased `source` field of
- * stories already saved, so a repeat refresh naturally moves on to a
- * different book once one has been fully imported.
+/** Fetches a fresh batch of public-domain detective stories. `existingSources`
+ * should be the lowercased `source` field of stories already saved, so a
+ * repeat refresh naturally moves on to a different book once one has been
+ * fully imported.
+ *
+ * Two independent sources are tried in parallel:
+ * - Project Gutenberg, found via the Gutendex search API — needs a CORS
+ *   proxy, since neither Gutendex nor gutenberg.org reliably sends CORS
+ *   headers for a browser fetch.
+ * - Wikisource, via the core MediaWiki API — supports anonymous
+ *   cross-origin requests natively (no proxy needed at all), so if the
+ *   Gutenberg path is failing because a proxy is down, this path is
+ *   unaffected by that.
  *
  * Every network attempt underneath this has its own timeout (see
- * fetchTextWithProxy), and the queries here run in parallel rather than one
- * after another — otherwise a single slow proxy multiplies across every
- * query and fallback book in turn, which is what made this hang in practice
- * with nothing ever appearing. */
+ * fetchTextWithProxy), and everything runs in parallel rather than one
+ * source after another — otherwise a single slow step multiplies across
+ * every query in turn, which is what made this hang in practice before. */
 export async function refreshStories(existingSources: Set<string>): Promise<{ items: NewStory[]; errors: string[] }> {
   const items: NewStory[] = []
   const errors: string[] = []
 
-  const queryResults = await Promise.allSettled(QUERIES.map((q) => storiesForQuery(q, existingSources)))
-  queryResults.forEach((r, i) => {
+  const [gutendexResults, wikisource] = await Promise.all([
+    Promise.allSettled(QUERIES.map((q) => storiesForQuery(q, existingSources))),
+    fetchWikisourceStories(existingSources).catch((e) => ({ items: [] as NewStory[], errors: [String(e)] })),
+  ])
+  gutendexResults.forEach((r, i) => {
     if (r.status === 'fulfilled') items.push(...r.value)
-    else errors.push(QUERIES[i].authorLabel)
+    else errors.push(`${QUERIES[i].authorLabel} (Gutenberg)`)
   })
+  items.push(...wikisource.items)
+  errors.push(...wikisource.errors)
 
   if (items.length === 0) {
     const candidateBooks = FALLBACK_BOOKS.filter((fb) => !existingSources.has(`${fb.title} — project gutenberg`.toLowerCase()))
     const fallbackResults = await Promise.allSettled(candidateBooks.map((fb) => storiesForFallbackBook(fb)))
     fallbackResults.forEach((r, i) => {
       if (r.status === 'fulfilled') items.push(...r.value)
-      else errors.push(candidateBooks[i].title)
+      else errors.push(`${candidateBooks[i].title} (Gutenberg fallback)`)
     })
   }
 
-  return { items: items.slice(0, MAX_NEW_STORIES_PER_REFRESH), errors }
+  // Different queries (or different sources entirely) can land on the same
+  // story — e.g. Gutendex and Wikisource both surfacing "A Scandal in
+  // Bohemia". addStories() only dedupes against stories already saved, not
+  // within this same batch, so dedupe by title here first.
+  const seenTitles = new Set<string>()
+  const deduped = items.filter((it) => {
+    const key = it.title.toLowerCase()
+    if (seenTitles.has(key)) return false
+    seenTitles.add(key)
+    return true
+  })
+
+  return { items: deduped.slice(0, MAX_NEW_STORIES_PER_REFRESH), errors }
 }

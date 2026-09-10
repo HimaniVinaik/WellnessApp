@@ -64,14 +64,24 @@ export default function ReadingTab() {
         window.setTimeout(() => reject(new Error('Timed out reaching Project Gutenberg')), 35000)
       )
       const { items, errors } = await Promise.race([refreshStories(existingSources), watchdog])
+      const uniqueErrors = [...new Set(errors)]
       if (items.length > 0) {
         addStories(items)
-        showToast(`Added ${items.length} new stor${items.length === 1 ? 'y' : 'ies'}${errors.length ? ` (${errors.join(', ')} unavailable)` : ''}`)
+        showToast(`Added ${items.length} new stor${items.length === 1 ? 'y' : 'ies'}${uniqueErrors.length ? ` (${uniqueErrors.length} source${uniqueErrors.length === 1 ? '' : 's'} unavailable)` : ''}`)
+      } else if (uniqueErrors.length > 0) {
+        // Surface that sources actually failed rather than a generic
+        // message — without this, a real network/proxy problem is
+        // indistinguishable from "you already have everything," which makes
+        // it impossible to tell what's actually wrong from a bug report.
+        // The full list goes to the console (short, capped toast on screen).
+        console.error('Story poll: every source failed:', uniqueErrors)
+        showToast(`Couldn't reach any story source right now (${uniqueErrors.length} tried). Try again shortly.`)
       } else {
-        showToast('No new stories right now — try again in a bit, or you may already have them all.')
+        showToast('No new stories right now — you may already have them all. Try again in a bit for more.')
       }
-    } catch {
-      showToast('Something went wrong fetching stories.')
+    } catch (e) {
+      console.error('Story poll failed:', e)
+      showToast(`Something went wrong fetching stories${e instanceof Error ? `: ${e.message}` : ''}.`)
     } finally {
       setStoriesLoading(false)
     }
