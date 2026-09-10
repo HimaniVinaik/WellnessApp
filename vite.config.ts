@@ -10,6 +10,14 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
+      workbox: {
+        // Force any previously-installed service worker to take over and
+        // discard its old precache immediately on the next visit, instead
+        // of leaving a stale app shell running until every tab is closed.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+      },
       manifest: {
         name: 'Mental Wellness',
         short_name: 'Wellness',
