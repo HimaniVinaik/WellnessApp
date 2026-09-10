@@ -57,7 +57,13 @@ export default function ReadingTab() {
     setStoriesLoading(true)
     try {
       const existingSources = new Set(state.stories.map((s) => s.source.toLowerCase()))
-      const { items, errors } = await refreshStories(existingSources)
+      // refreshStories() already times out each network call it makes, but
+      // this is a hard backstop: whatever happens underneath, the button
+      // stops spinning within 35s instead of possibly hanging forever.
+      const watchdog = new Promise<never>((_, reject) =>
+        window.setTimeout(() => reject(new Error('Timed out reaching Project Gutenberg')), 35000)
+      )
+      const { items, errors } = await Promise.race([refreshStories(existingSources), watchdog])
       if (items.length > 0) {
         addStories(items)
         showToast(`Added ${items.length} new stor${items.length === 1 ? 'y' : 'ies'}${errors.length ? ` (${errors.join(', ')} unavailable)` : ''}`)

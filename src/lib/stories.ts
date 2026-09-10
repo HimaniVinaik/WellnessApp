@@ -150,57 +150,54 @@ async function storiesFromBook(book: { title: string; author: string; url: strin
   }))
 }
 
+async function storiesForQuery(
+  { query, titleMatch, authorLabel }: (typeof AUTHOR_QUERIES)[number],
+  existingSources: Set<string>
+): Promise<NewStory[]> {
+  const results = await searchGutendex(query)
+  const candidates = results.filter((b) => titleMatch.test(b.title) && pickPlainTextUrl(b.formats))
+  if (candidates.length === 0) throw new Error('No matching Gutenberg books found')
+
+  const fresh = candidates.find((b) => !existingSources.has(`${b.title} — project gutenberg`.toLowerCase()))
+  const picked = fresh ?? candidates[Math.floor(Math.random() * candidates.length)]
+  const textUrl = pickPlainTextUrl(picked.formats)!
+  const raw = await fetchTextWithProxy(textUrl, 'text/plain')
+  return storiesFromBook({ title: picked.title, author: picked.authors?.[0]?.name ?? authorLabel, url: textUrl }, raw)
+}
+
+async function storiesForFallbackBook(fb: (typeof FALLBACK_BOOKS)[number]): Promise<NewStory[]> {
+  const raw = await fetchFallbackBookText(fb.id)
+  return storiesFromBook({ title: fb.title, author: fb.author, url: `https://www.gutenberg.org/ebooks/${fb.id}` }, raw)
+}
+
 /** Fetches a fresh batch of public-domain detective stories from Project
  * Gutenberg. `existingSources` should be the lowercased `source` field of
  * stories already saved, so a repeat refresh naturally moves on to a
- * different book once one has been fully imported. */
+ * different book once one has been fully imported.
+ *
+ * Every network attempt underneath this has its own timeout (see
+ * fetchTextWithProxy), and the queries here run in parallel rather than one
+ * after another — otherwise a single slow proxy multiplies across every
+ * query and fallback book in turn, which is what made this hang in practice
+ * with nothing ever appearing. */
 export async function refreshStories(existingSources: Set<string>): Promise<{ items: NewStory[]; errors: string[] }> {
   const items: NewStory[] = []
   const errors: string[] = []
 
-  for (const { query, titleMatch, authorLabel } of AUTHOR_QUERIES) {
-    if (items.length >= MAX_NEW_STORIES_PER_REFRESH) break
-    try {
-      const results = await searchGutendex(query)
-      const candidates = results.filter((b) => titleMatch.test(b.title) && pickPlainTextUrl(b.formats))
-      if (candidates.length === 0) throw new Error('No matching Gutenberg books found')
-
-      const fresh = candidates.find((b) => !existingSources.has(`${b.title} — project gutenberg`.toLowerCase()))
-      const picked = fresh ?? candidates[Math.floor(Math.random() * candidates.length)]
-      const textUrl = pickPlainTextUrl(picked.formats)!
-      const raw = await fetchTextWithProxy(textUrl, 'text/plain')
-      const stories = await storiesFromBook(
-        { title: picked.title, author: picked.authors?.[0]?.name ?? authorLabel, url: textUrl },
-        raw
-      )
-      for (const s of stories) {
-        if (items.length >= MAX_NEW_STORIES_PER_REFRESH) break
-        items.push(s)
-      }
-    } catch {
-      errors.push(authorLabel)
-    }
-  }
+  const queryResults = await Promise.allSettled(AUTHOR_QUERIES.map((q) => storiesForQuery(q, existingSources)))
+  queryResults.forEach((r, i) => {
+    if (r.status === 'fulfilled') items.push(...r.value)
+    else errors.push(AUTHOR_QUERIES[i].authorLabel)
+  })
 
   if (items.length === 0) {
-    for (const fb of FALLBACK_BOOKS) {
-      if (items.length >= MAX_NEW_STORIES_PER_REFRESH) break
-      if (existingSources.has(`${fb.title} — project gutenberg`.toLowerCase())) continue
-      try {
-        const raw = await fetchFallbackBookText(fb.id)
-        const stories = await storiesFromBook(
-          { title: fb.title, author: fb.author, url: `https://www.gutenberg.org/ebooks/${fb.id}` },
-          raw
-        )
-        for (const s of stories) {
-          if (items.length >= MAX_NEW_STORIES_PER_REFRESH) break
-          items.push(s)
-        }
-      } catch {
-        errors.push(fb.title)
-      }
-    }
+    const candidateBooks = FALLBACK_BOOKS.filter((fb) => !existingSources.has(`${fb.title} — project gutenberg`.toLowerCase()))
+    const fallbackResults = await Promise.allSettled(candidateBooks.map((fb) => storiesForFallbackBook(fb)))
+    fallbackResults.forEach((r, i) => {
+      if (r.status === 'fulfilled') items.push(...r.value)
+      else errors.push(candidateBooks[i].title)
+    })
   }
 
-  return { items, errors }
+  return { items: items.slice(0, MAX_NEW_STORIES_PER_REFRESH), errors }
 }

@@ -102,21 +102,53 @@ function parseFeedXml(xml: string, sourceName: string): FeedItem[] {
     .filter((item) => item.url)
 }
 
-const PROXY = 'https://api.allorigins.win/raw?url='
+// Two independent public CORS proxies, tried in order — free proxies like
+// these are prone to being slow, rate-limited or briefly down, so relying on
+// only one means a single bad day for that service hangs the whole feature.
+const PROXIES = [
+  (url: string) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+  (url: string) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url),
+]
+
+/** fetch() has no built-in timeout — a stalled connection (common with free
+ * CORS proxies under load) leaves the returned promise pending forever,
+ * which is indistinguishable from the UI just hanging. This aborts and
+ * rejects after `timeoutMs` so a stuck request always fails fast enough to
+ * fall back to the next option instead of stalling the whole operation. */
+async function fetchWithTimeout(url: string, init: RequestInit | undefined, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
 
 /** Fetches a URL directly first (works when the source sends CORS headers),
- * falling back to a public CORS proxy when the browser blocks the direct
- * request. Shared by the essay feed reader and the detective-story fetcher. */
+ * falling back through a couple of public CORS proxies when the browser
+ * blocks the direct request. Every attempt has a hard timeout, so a stalled
+ * proxy always fails over to the next one instead of hanging indefinitely.
+ * Shared by the essay feed reader and the detective-story fetcher. */
 export async function fetchTextWithProxy(url: string, accept?: string): Promise<string> {
   try {
-    const direct = await fetch(url, accept ? { headers: { Accept: accept } } : undefined)
+    const direct = await fetchWithTimeout(url, accept ? { headers: { Accept: accept } } : undefined, 8000)
     if (direct.ok) return await direct.text()
   } catch {
-    // CORS or network failure — fall back to proxy below.
+    // CORS or network failure (or timeout) — fall back to a proxy below.
   }
-  const res = await fetch(PROXY + encodeURIComponent(url))
-  if (!res.ok) throw new Error(`Fetch failed (${res.status})`)
-  return res.text()
+
+  let lastErr: unknown
+  for (const makeProxyUrl of PROXIES) {
+    try {
+      const res = await fetchWithTimeout(makeProxyUrl(url), undefined, 15000)
+      if (!res.ok) throw new Error(`Fetch failed (${res.status})`)
+      return await res.text()
+    } catch (e) {
+      lastErr = e
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('Fetch failed')
 }
 
 export async function fetchOneFeed(source: FeedSource): Promise<FeedItem[]> {
